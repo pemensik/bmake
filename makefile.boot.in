@@ -1,5 +1,5 @@
 # RCSid:
-#	$Id: makefile.boot.in,v 1.25 2003/07/30 23:27:37 sjg Exp $
+#	$Id: makefile.boot.in,v 1.26 2004/05/08 17:55:31 sjg Exp $
 
 #
 # modify MACHINE and MACHINE_ARCH as appropriate for your target architecture
@@ -14,7 +14,7 @@ MKDEP_OPTS=-A
 MK=${prefix}/share/mk
 MKSRC=@mksrc@
 DEFAULT_MAKESYSPATH=/usr/share/mk:/usr/local/share/mk:/opt/share/mk
-CFLAGS=-I. -I$(srcdir) @DEFS@ @CPPFLAGS@ -DMAKE_BOOTSTRAP ${XDEFS}
+CFLAGS=-I. -I$(srcdir) @DEFS@ @CPPFLAGS@ ${XDEFS}
 MDEFS="-D@force_machine@MACHINE=\"@machine@\"" "-DMACHINE_ARCH=\"@machine_arch@\""
 
 OBJ=arch.o buf.o compat.o cond.o dir.o for.o hash.o job.o main.o make.o \
