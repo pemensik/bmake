@@ -18,7 +18,7 @@
 #	Simon J. Gerraty <sjg@crufty.net>
 
 # RCSid:
-#	$Id: boot-strap,v 1.9 2004/01/19 00:40:36 sjg Exp $
+#	$Id: boot-strap,v 1.10 2004/05/11 18:15:17 sjg Exp $
 #
 #	@(#) Copyright (c) 2001 Simon J. Gerraty
 #
@@ -40,27 +40,47 @@ case $Mydir in
 *) Mydir=`cd $Mydir; /bin/pwd`;;
 esac
 
+
+Usage() {
+	[ "$1" ] && echo "ERROR: $@" >&2
+	echo "Usage:" >&2
+	echo "$0 [--<configure_arg> ...][-s <srcdir>][-m <mksrc>][<prefix> [[<srcdir>] [<mksrc>]]]" >&2
+	exit 1
+}
+
+Error() {
+	echo "ERROR: $@" >&2
+	exit 1
+}
+
+
 CONFIGURE_ARGS=
 prefix=
 srcdir=
 mksrc=
+objdir=
+quiet=:
 
 while :
 do
-        case "$1" in
+	case "$1" in
 	--) shift; break;;
 	--prefix) prefix=$2; shift 2;;
 	--prefix=*) prefix=`IFS="="; set -- $1; echo $2`; shift;;
+	--src=*) srcdir=`IFS="="; set -- $1; echo $2`; shift;;
+	--with-mksrc=*) mksrc=`IFS="="; set -- $1; echo $2`; shift;;
 	--*) CONFIGURE_ARGS="$CONFIGURE_ARGS $1"; shift;;
-        *=*) eval "$1"; export `IFS="="; set -- $1; echo $1`; shift;;
-	-s) srcdir=$2; shift 2;;
-	-m) mksrc=$2; shift 2;;
+	*=*) eval "$1"; export `IFS="="; set -- $1; echo $1`; shift;;
+	-s|--src) srcdir=$2; shift 2;;
+	-m|--mksrc) mksrc=$2; shift 2;;
+	-o) objdir=$2; shift 2;;
+	-q) quiet=; shift;;
 	*) break;;
 	esac
 done
 
 AddConfigure() {
-        case " $CONFIGURE_ARGS " in
+	case " $CONFIGURE_ARGS " in
 	*" $1"*) ;;
 	*) CONFIGURE_ARGS="$CONFIGURE_ARGS $1$2";;
 	esac
@@ -84,21 +104,18 @@ GetDir() {
 		break
 	done
 }
-
-Usage() {
-	echo "Usage:" >&2
-	echo "$0 [--<configure_arg> ...][-s <srcdir>][-m <mksrc>][<prefix> [[<srcdir>] [<mksrc>]]]" >&2
-	exit 1
-}
 	
-srcdir=${srcdir:-`GetDir /bmake $2 $Mydir ./bmake* $Mydir/../bmake*`}
+srcdir=`GetDir /bmake $srcdir $2 $Mydir ./bmake* $Mydir/../bmake*`
 [ -d $srcdir ] || Usage
-mksrc=${mksrc:-`GetDir /mk $3 ./mk* $srcdir/mk* $srcdir/../mk*`}
+mksrc=`GetDir /mk $mksrc $3 ./mk* $srcdir/mk* $srcdir/../mk*`
 [ -d $mksrc ] || Usage
 
 # Ok, get to work...
-[ -d $OS ] || mkdir $OS
-cd $OS || exit 1
+objdir=${objdir:-$OS}
+[ -d $objdir ] || mkdir -p $objdir
+[ -d $objdir ] || mkdir $objdir
+cd $objdir || exit 1
+
 defsyspath=/usr/share/mk:/share/mk:/usr/local/share/mk:/opt/share/mk
 prefix=${prefix:-${1:-/usr/local}}
 case "$prefix" in
@@ -113,6 +130,9 @@ $srcdir/configure $CONFIGURE_ARGS || exit 1
 ${MAKE:-make} -f makefile.boot clean
 ${MAKE:-make} -f makefile.boot bootstrap || exit 1
 
+# If -q given, we don't want all the install instructions
+$quiet exit 0
+
 make_version=`./bmake -m ./mk -m /usr/share/mk -f ./Makefile -V MAKE_VERSION | ( read one two; echo $one )`
 
 install_prefix() {
@@ -121,7 +141,7 @@ install_prefix() {
        echo Commands to install into $1/
        echo
        echo mkdir -p $bdir
-       echo cp $OS/bmake $bdir/$make_version
+       echo cp $objdir/bmake $bdir/$make_version
        echo rm -f $bdir/bmake
        echo ln -s $make_version $bdir/bmake
        echo $mksrc/install-mk $1/share/mk
@@ -130,11 +150,11 @@ install_prefix() {
 case $prefix/ in
 $HOME/*) ;;
 *)	CONFIGS=${CONFIGS:-/configs}
-        [ -d $CONFIGS ] &&
-        install_prefix $CONFIGS/$OS/$OSMAJOR.X/$MACHINE_ARCH$prefix
-        # I like to keep a copy here...
-        install_prefix $HOME/$HOST_TARGET
-        ;;
+	[ -d $CONFIGS ] &&
+	install_prefix $CONFIGS/$OS/$OSMAJOR.X/$MACHINE_ARCH$prefix
+	# I like to keep a copy here...
+	install_prefix $HOME/$HOST_TARGET
+	;;
 esac
 
 install_prefix $prefix
