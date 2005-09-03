@@ -8,7 +8,6 @@ PSD.doc/Makefile
 PSD.doc/tutorial.ms
 README
 arch.c
-bit.h
 buf.c
 buf.h
 compat.c
@@ -31,7 +30,6 @@ job.c
 job.h
 trace.c
 trace.h
-list.h
 lst.h
 lst.lib/Makefile
 lst.lib/lstAppend.c
@@ -85,6 +83,7 @@ var.c
 wait.h
 unit-tests/Makefile.in
 unit-tests/cond1
+unit-tests/comment
 unit-tests/modmatch
 unit-tests/modorder
 unit-tests/modts
