@@ -1,5 +1,5 @@
 # RCSid:
-#	$Id: makefile.boot.in,v 1.26 2004/05/08 17:55:31 sjg Exp $
+#	$Id: makefile.boot.in,v 1.27 2005/10/09 22:32:48 sjg Exp $
 
 #
 # modify MACHINE and MACHINE_ARCH as appropriate for your target architecture
@@ -33,14 +33,14 @@ bmake:	bmake.boot
 
 bmake.boot: ${OBJ}
 	(cd lst.lib; $(MAKE) -f makefile.boot CC="$(CC)" CFLAGS="-I.. -I../${srcdir} -I${srcdir} ${CFLAGS}" )
-	${CC} *.o lst.lib/*.o -o $@ @LIBS@
+	${CC} *.o lst.lib/*.o -o $@ @LDFLAGS@ @LIBS@
 	rm -f *.[ado] */*.[ado] 
 
 
 .mk.done:
 	@if test -s ${MKSRC}/install-mk; then \
 	  sh ${MKSRC}/install-mk -v -m 644 `pwd`/mk ${USE_OS}; \
-	elif test ! -s /usr/share/mk/sys.mk; then \
+	elif test ! -s /usr/share/mk/sys.mk -a ! -s ${MK}/sys.mk; then \
 	  echo need to unpack mk.tar.gz under ${srcdir} or set MKSRC; false; \
 	fi
 	@touch $@

@@ -17,7 +17,7 @@
 #	Simon J. Gerraty <sjg@crufty.net>
 
 # RCSid:
-#	$Id: os.sh,v 1.39 2003/07/09 16:33:02 sjg Exp $
+#	$Id: os.sh,v 1.41 2005/10/09 23:05:08 sjg Exp $
 #
 #	@(#) Copyright (c) 1994 Simon J. Gerraty
 #
@@ -50,7 +50,10 @@ Which() {
 	case "$1" in
 	/*)	test $t $1 && echo $1;;
 	*)
-		for d in `IFS=:; echo ${2:-$PATH}`
+        	# some shells cannot correctly handle `IFS`
+        	# in conjunction with the for loop.
+        	_dirs=`IFS=:; echo ${2:-$PATH}`
+        	for d in $_dirs
 		do
 			test $t $d/$1 && { echo $d/$1; break; }
 		done
@@ -127,6 +130,10 @@ SunOS)
 	# so NetBSD/i386 is good enough
 	case $OS in
 	NetBSD) SHARE_ARCH=$OS/${MACHINE_ARCH:-$MACHINE};;
+	OpenBSD)
+	        arch=`Which arch /usr/bin:/usr/ucb:$PATH`
+                MACHINE_ARCH=`$arch -s`
+                ;;
 	esac
 	NAWK=awk
 	export NAWK
@@ -145,6 +152,15 @@ HP-UX)
 	;;
 IRIX)
 	LOCAL_FS=efs
+	;;
+Interix)
+	MACHINE=i386
+	MACHINE_ARCH=i386
+	;;
+UnixWare)
+	OSREL=`uname -v`
+	OSMAJOR=`IFS=.; set $OSREL; echo $1`
+	MACHINE_ARCH=`uname -m`
 	;;
 Linux)
 	# Not really any such thing as Linux, but

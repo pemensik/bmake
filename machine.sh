@@ -2,7 +2,7 @@
 # derrived from /etc/rc_d/os.sh
 
 # RCSid:
-#	$Id: machine.sh,v 1.14 2003/07/11 06:16:35 sjg Exp $
+#	$Id: machine.sh,v 1.15 2005/10/09 22:32:48 sjg Exp $
 #
 #	@(#) Copyright (c) 1994-2002 Simon J. Gerraty
 #
@@ -32,7 +32,10 @@ esac
 # Great! Solaris keeps moving arch(1)
 # we need this here, and it is not always available...
 Which() {
-	for d in `IFS=:; echo ${2:-$PATH}`
+	# some shells cannot correctly handle `IFS`
+	# in conjunction with the for loop.
+	_dirs=`IFS=:; echo ${2:-$PATH}`
+	for d in $_dirs
 	do
 		test -x $d/$1 && { echo $d/$1; break; }
 	done
@@ -41,6 +44,7 @@ Which() {
 case $OS in
 OpenBSD)
 	MACHINE=$OS$OSMAJOR.$machine
+	arch=`Which arch /usr/bin:/usr/ucb:$PATH`
 	MACHINE_ARCH=`$arch -s`;
 	;;
 *BSD)
@@ -57,6 +61,15 @@ SunOS)
 	;;
 HP-UX)
 	MACHINE_ARCH=`IFS="/-."; set $machine; echo $1`
+	;;
+Interix)
+	MACHINE=i386
+	MACHINE_ARCH=i386
+	;;
+UnixWare)
+	OSREL=`uname -v`
+	OSMAJOR=`IFS=.; set $OSREL; echo $1`
+	MACHINE_ARCH=`uname -m`
 	;;
 Linux)
         case "$machine" in
