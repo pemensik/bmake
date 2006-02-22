@@ -14,6 +14,14 @@
 #	(http://www.crufty.net/FreeWare/configs.html), $prefix/bin
 #	and a suitable ~/*bin directory.
 #
+#	Options:
+#
+#	-m "mksrc"
+#		Indicate where the mk files can be found.
+#		Default is ./mk or ../mk, set to 'none' to force
+#		building without "mksrc" but in that case a sys.mk
+#		needs to exist in the default syspath ($prefix/share/mk)
+#
 #	Possibly useful configure_args:
 #
 #	--with-machine="machine"
@@ -38,7 +46,7 @@
 #	Simon J. Gerraty <sjg@crufty.net>
 
 # RCSid:
-#	$Id: boot-strap,v 1.14 2005/11/07 17:56:59 sjg Exp $
+#	$Id: boot-strap,v 1.16 2006/02/22 21:18:53 sjg Exp $
 #
 #	@(#) Copyright (c) 2001 Simon J. Gerraty
 #
@@ -133,7 +141,7 @@ none|-) # we don't want it
 	;;
 *)	# guess we want mksrc...
 	mksrc=`GetDir /mk $mksrc $3 ./mk* $srcdir/mk* $srcdir/../mk*`
-	[ -d ${mksrc:-/dev/null} ] || Usage
+	[ -d ${mksrc:-/dev/null} ] || Usage "Use '-m none' to build without mksrc"
 	;;
 esac
 
