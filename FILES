@@ -92,3 +92,5 @@ unit-tests/posix
 unit-tests/ternary
 unit-tests/test.exp
 unit-tests/varcmd
+unit-tests/modmisc
+unit-tests/dotwait
