@@ -1,4 +1,4 @@
-.\"	$NetBSD: make.1,v 1.122 2006/02/26 22:45:46 apb Exp $
+.\"	$NetBSD: make.1,v 1.124 2006/03/19 01:53:01 sjg Exp $
 .\"
 .\" Copyright (c) 1990, 1993
 .\"	The Regents of the University of California.  All rights reserved.
@@ -29,7 +29,7 @@
 .\"
 .\"	from: @(#)make.1	8.4 (Berkeley) 3/19/94
 .\"
-.Dd February 26, 2006
+.Dd March 18, 2006
 .Dt MAKE 1
 .Os
 .Sh NAME
@@ -140,8 +140,10 @@ These are created via
 .Xr mkstemp 3
 and have names of the form
 .Pa /tmp/makeXXXXX .
-.Em NOTE:
-This can create many file in /tmp so use with care.
+.Em NOTE :
+This can create many file in
+.Pa /tmp
+so use with care.
 .It Ar p
 Print debugging information about makefile parsing.
 .It Ar s
@@ -415,6 +417,10 @@ Assign the value to the variable if it is not already defined.
 Assign with expansion, i.e. expand the value before assigning it
 to the variable.
 Normally, expansion is not done until the variable is referenced.
+.Em NOTE :
+References to undefined variables are
+.Em not
+expanded.  This can cause problems when variable modifiers are used.
 .It Ic \&!=
 Expand the value and pass it to the shell for execution and assign
 the result to the variable.
