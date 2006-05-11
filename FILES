@@ -84,6 +84,7 @@ wait.h
 unit-tests/Makefile.in
 unit-tests/cond1
 unit-tests/comment
+unit-tests/moderrs
 unit-tests/modmatch
 unit-tests/modorder
 unit-tests/modts
