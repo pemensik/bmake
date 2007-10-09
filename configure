@@ -5427,6 +5427,7 @@ fi
 
 
 
+
 for ac_func in \
 	asprintf \
 	getcwd \
@@ -5445,6 +5446,7 @@ for ac_func in \
 	strftime \
 	strtod \
 	strtol \
+	unsetenv \
 	vasprintf \
 	vsnprintf \
 	wait3 \
