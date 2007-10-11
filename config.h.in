@@ -223,6 +223,9 @@
 # undef _ALL_SOURCE
 #endif
 
+/* Path of default shell */
+#undef _BASENAME_DEFSHELL
+
 /* Define to 1 if on MINIX. */
 #undef _MINIX
 

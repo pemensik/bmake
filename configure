@@ -846,7 +846,7 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-defshell=SHELL  explicitly set DEFSHELL to either /bin/sh or /bin/ksh
+  --with-defshell=SHELL  use SHELL by default - must be sh compatible, use sh or ksh to pick the internal definitions
   --with-machine=MACHINE  explicitly set MACHINE
   --with-force-machine=MACHINE  set FORCE_MACHINE
   --with-force-machine-arch=MACHINE  set FORCE_MACHINE_ARCH
@@ -1285,27 +1285,14 @@ yes)   { { echo "$as_me:$LINENO: error: bad value ${withval} given for bmake DEF
 echo "$as_me: error: bad value ${withval} given for bmake DEFSHELL" >&2;}
    { (exit 1); exit 1; }; } ;;
 no)    ;;
-*)     case "/$with_defshell" in
-       */csh) DEFSHELL=0;;	   # kidding right?
-       */sh)  DEFSHELL=1;;
-       */ksh) DEFSHELL=2;;
-       *) { { echo "$as_me:$LINENO: error: bad value ${withval} given for bmake DEFSHELL - only /bin/sh and /bin/ksh are valid" >&5
-echo "$as_me: error: bad value ${withval} given for bmake DEFSHELL - only /bin/sh and /bin/ksh are valid" >&2;}
-   { (exit 1); exit 1; }; } ;;
+*)     case "$with_defshell" in
+       sh) DEFSHELL=0;;		# its the default anyway
+       ksh) DEFSHELL=1;;
+       csh) DEFSHELL=2;;	# kidding right?
+       *)   defshell_path=$with_defshell;;# better be sh compatible!
        esac
-       case "$with_defshell" in
-       /bin/*) ;;
-       /*) { { echo "$as_me:$LINENO: error: bad value ${withval} - DEFSHELL must reside in /bin" >&5
-echo "$as_me: error: bad value ${withval} - DEFSHELL must reside in /bin" >&2;}
-   { (exit 1); exit 1; }; };;
-       esac
-
-cat >>confdefs.h <<_ACEOF
-#define DEFSHELL ${DEFSHELL:-1}
-_ACEOF
-
        ;;
-esac
+       esac
 fi;
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -5929,6 +5916,24 @@ do
 done
 mksrc=`echo $mksrc | sed "s,$srcdir,\\\${srcdir},"`
 echo "Using: MKSRC=$mksrc" 1>&6
+if test -x /usr/xpg4/bin/sh; then
+        defshell_path=${defshell_path:-/usr/xpg4/bin/sh}
+fi
+if test -n "$defshell_path"; then
+	echo "Using: SHELL=$defshell_path"  >&6
+
+cat >>confdefs.h <<_ACEOF
+#define _BASENAME_DEFSHELL "$defshell_path"
+_ACEOF
+
+fi
+if test -n "$DEFSHELL"; then
+
+cat >>confdefs.h <<_ACEOF
+#define DEFSHELL $DEFSHELL
+_ACEOF
+
+fi
 
 
 
