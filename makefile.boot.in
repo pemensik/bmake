@@ -24,6 +24,7 @@ BMAKE_ENV= CC="$(CC)" LIBC= MAKEFLAGS= MAKESYSPATH=`pwd`/mk:${MKSRC}:${MK}:${DEF
 
 bootstrap:	bmake.boot .mk.done
 	${BMAKE_ENV} ./bmake.boot -f Makefile 
+	${BMAKE_ENV} ./bmake.boot -f Makefile bmake.1
 	${BMAKE_ENV} `pwd`/bmake -f Makefile test
 	
 bmake:	bmake.boot

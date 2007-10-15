@@ -1286,10 +1286,10 @@ echo "$as_me: error: bad value ${withval} given for bmake DEFSHELL" >&2;}
    { (exit 1); exit 1; }; } ;;
 no)    ;;
 *)     case "$with_defshell" in
-       sh) DEFSHELL=0;;		# its the default anyway
-       ksh) DEFSHELL=1;;
-       csh) DEFSHELL=2;;	# kidding right?
-       *)   defshell_path=$with_defshell;;# better be sh compatible!
+       sh)  DEFSHELL_INDEX=DEFSHELL_INDEX_SH;;	# it's the default anyway
+       ksh) DEFSHELL_INDEX=DEFSHELL_INDEX_KSH;;
+       csh) DEFSHELL_INDEX=DEFSHELL_INDEX_CSH;;	# kidding right?
+       *)   defshell_path=$with_defshell;;	# better be sh compatible!
        esac
        ;;
        esac
@@ -5415,8 +5415,12 @@ fi
 
 
 
+
+
+
 for ac_func in \
 	asprintf \
+	emalloc \
 	getcwd \
 	getenv \
 	getopt \
@@ -5429,6 +5433,8 @@ for ac_func in \
 	sigvec \
 	snprintf \
 	strdup \
+	estrndup \
+	strndup \
 	strerror \
 	strftime \
 	strtod \
@@ -5923,14 +5929,14 @@ if test -n "$defshell_path"; then
 	echo "Using: SHELL=$defshell_path"  >&6
 
 cat >>confdefs.h <<_ACEOF
-#define _BASENAME_DEFSHELL "$defshell_path"
+#define DEFSHELL_CUSTOM "$defshell_path"
 _ACEOF
 
 fi
-if test -n "$DEFSHELL"; then
+if test -n "$DEFSHELL_INDEX"; then
 
 cat >>confdefs.h <<_ACEOF
-#define DEFSHELL $DEFSHELL
+#define DEFSHELL_INDEX $DEFSHELL_INDEX
 _ACEOF
 
 fi

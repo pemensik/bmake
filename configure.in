@@ -1,6 +1,6 @@
 dnl
 dnl RCSid:
-dnl	$Id: configure.in,v 1.26 2007/10/11 21:19:55 sjg Exp $
+dnl	$Id: configure.in,v 1.28 2007/10/15 04:06:40 sjg Exp $
 dnl
 dnl Process this file with autoconf to produce a configure script
 dnl
@@ -14,10 +14,10 @@ AC_ARG_WITH(defshell,
 yes)   AC_MSG_ERROR(bad value ${withval} given for bmake DEFSHELL) ;;
 no)    ;;
 *)     case "$with_defshell" in
-       sh) DEFSHELL=0;;		# its the default anyway
-       ksh) DEFSHELL=1;;
-       csh) DEFSHELL=2;;	# kidding right?
-       *)   defshell_path=$with_defshell;;# better be sh compatible!
+       sh)  DEFSHELL_INDEX=DEFSHELL_INDEX_SH;;	# it's the default anyway
+       ksh) DEFSHELL_INDEX=DEFSHELL_INDEX_KSH;;
+       csh) DEFSHELL_INDEX=DEFSHELL_INDEX_CSH;;	# kidding right?
+       *)   defshell_path=$with_defshell;;	# better be sh compatible!
        esac
        ;;
        esac])
@@ -93,6 +93,7 @@ AC_FUNC_WAIT3
 dnl Keep this list sorted
 AC_CHECK_FUNCS( \
 	asprintf \
+	emalloc \
 	getcwd \
 	getenv \
 	getopt \
@@ -105,6 +106,8 @@ AC_CHECK_FUNCS( \
 	sigvec \
 	snprintf \
 	strdup \
+	estrndup \
+	strndup \
 	strerror \
 	strftime \
 	strtod \
@@ -280,10 +283,10 @@ if test -x /usr/xpg4/bin/sh; then
 fi
 if test -n "$defshell_path"; then
 	echo "Using: SHELL=$defshell_path"  >&6
-	AC_DEFINE_UNQUOTED(_BASENAME_DEFSHELL, "$defshell_path", Path of default shell)
+	AC_DEFINE_UNQUOTED(DEFSHELL_CUSTOM, "$defshell_path", Path of default shell)
 fi
-if test -n "$DEFSHELL"; then
-       AC_DEFINE_UNQUOTED(DEFSHELL, $DEFSHELL, Shell spec to use by default)
+if test -n "$DEFSHELL_INDEX"; then
+       AC_DEFINE_UNQUOTED(DEFSHELL_INDEX, $DEFSHELL_INDEX, Shell spec to use by default)
 fi        
 dnl
 AC_SUBST(machine)
