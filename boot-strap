@@ -16,6 +16,11 @@
 #
 #	Options:
 #
+#	-c "rc"
+#		Pick up settings from "rc".  
+#		We look for '.bmake-boot-strap.rc' before processing
+#		options.
+#
 #	-m "mksrc"
 #		Indicate where the mk files can be found.
 #		Default is ./mk or ../mk, set to 'none' to force
@@ -46,7 +51,7 @@
 #	Simon J. Gerraty <sjg@crufty.net>
 
 # RCSid:
-#	$Id: boot-strap,v 1.20 2007/10/15 06:34:00 sjg Exp $
+#	$Id: boot-strap,v 1.21 2007/10/22 17:10:32 sjg Exp $
 #
 #	@(#) Copyright (c) 2001 Simon J. Gerraty
 #
@@ -81,6 +86,17 @@ Error() {
 	exit 1
 }
 
+source_rc() {
+	rc=$1; shift
+	for d in ${*:-""}
+	do
+		r=${d:+$d/}$rc
+		[ -f $r -a -s $r ] || continue
+		echo "NOTE: reading $r"
+		. $r
+		break
+	done
+}
 
 CONFIGURE_ARGS=
 # pick a useful default prefix (for me at least ;-)
@@ -92,6 +108,8 @@ srcdir=
 mksrc=
 objdir=
 quiet=:
+
+source_rc .bmake-boot-strap.rc . $Mydir/.. $HOME
 
 while :
 do
@@ -105,6 +123,7 @@ do
 	-m|--mksrc) mksrc=$2; shift 2;;
 	-o|--objdir) objdir=$2; shift 2;;
 	-q) quiet=; shift;;
+	-c) source_rc $2; shift 2;;
 	--*) CONFIGURE_ARGS="$CONFIGURE_ARGS $1"; shift;;
 	*=*) eval "$1"; export `IFS="="; set -- $1; echo $1`; shift;;
 	*) break;;

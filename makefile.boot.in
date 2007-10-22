@@ -1,5 +1,5 @@
 # RCSid:
-#	$Id: makefile.boot.in,v 1.29 2005/11/07 17:56:59 sjg Exp $
+#	$Id: makefile.boot.in,v 1.30 2007/10/17 00:01:41 sjg Exp $
 
 #
 # modify MACHINE and MACHINE_ARCH as appropriate for your target architecture
