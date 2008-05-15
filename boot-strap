@@ -51,7 +51,7 @@
 #	Simon J. Gerraty <sjg@crufty.net>
 
 # RCSid:
-#	$Id: boot-strap,v 1.21 2007/10/22 17:10:32 sjg Exp $
+#	$Id: boot-strap,v 1.23 2008/05/15 05:46:19 sjg Exp $
 #
 #	@(#) Copyright (c) 2001 Simon J. Gerraty
 #
@@ -192,7 +192,7 @@ ${MAKE:-make} -f makefile.boot bootstrap || exit 1
 # If -q given, we don't want all the install instructions
 $quiet exit 0
 
-make_version=`./bmake -m ./mk -m /usr/share/mk -f ./Makefile -V MAKE_VERSION | ( read one two; echo $one )`
+make_version=`./bmake -m ./mk -m $prefix/share/mk -m /usr/share/mk -f ./Makefile -V MAKE_VERSION | ( read one two; echo $one )`
 
 install_prefix() {
        bindir=$1/bin
