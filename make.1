@@ -1,4 +1,4 @@
-.\"	$NetBSD: make.1,v 1.137 2008/08/10 23:25:50 wiz Exp $
+.\"	$NetBSD: make.1,v 1.141 2008/10/22 15:04:49 apb Exp $
 .\"
 .\" Copyright (c) 1990, 1993
 .\"	The Regents of the University of California.  All rights reserved.
@@ -29,7 +29,7 @@
 .\"
 .\"	from: @(#)make.1	8.4 (Berkeley) 3/19/94
 .\"
-.Dd August 10, 2008
+.Dd October 22, 2008
 .Dt MAKE 1
 .Os
 .Sh NAME
@@ -117,6 +117,13 @@ Unless the flags are preceded by
 they are added to the
 .Va MAKEFLAGS
 environment variable and will be processed by any child make processes.
+By default, debugging information is printed to standard error,
+but this can be changed using the
+.Ar F
+debugging flag.
+The debugging output is always unbuffered; in addition, if debugging
+is enabled but debugging output is not directed to standard output,
+then the standard output is line buffered.
 .Ar Flags
 is one or more of the following:
 .Bl -tag -width Ds
@@ -131,11 +138,27 @@ Print debugging information about conditional evaluation.
 Print debugging information about directory searching and caching.
 .It Ar e
 Print debugging information about failed commands and targets.
-.It Ar F
-Use the rest of
-.Ql flags
-as the name of the file to which the debug output is written.
-If the filename ends
+.It Ar F Ns Oo Sy \&+ Oc Ns Ar filename
+Specify where debugging output is written.
+This must be the last flag, because it consumes the remainder of
+the argument.
+If the character immediately after the
+.Ql F
+flag is
+.Ql \&+ ,
+then the file will be opened in append mode;
+otherwise the file will be overwritten.
+If the file name is
+.Ql stdout
+or
+.Ql stderr
+then debugging output will be written to the
+standard output or standard error output file descriptors respectively
+(and the
+.Ql \&+
+option has no effect).
+Otherwise, the output will be written to the named file.
+If the file name ends
 .Ql .%d
 then the
 .Ql %d
@@ -975,6 +998,39 @@ evaluates to true, return as its value the
 .Ar true_string ,
 otherwise return the
 .Ar false_string .
+The expression parser needs careful feeding to avoid surprises.
+For example the following all do what one might expect,
+.Dl ${"${NUMBERS:M42}":?match:no}
+.Dl ${${NUMBER:U0} > 0:?set:zero}
+.Dl ${empty(NUMBER):?empty:set}
+The first case expands to
+.Ql match
+if
+.Dv NUMBERS
+contains the value 42 (the quotes are important).
+The second expands to
+.Ql zero
+unless 
+.Dv NUMBER
+is set to a value greater than 0.
+The last case expands to 
+.Ql empty
+or
+.Ql set
+depending on whether
+.Dv NUMBER
+is empty.  In this example, use of 
+.Ql {}
+rather than
+.Ql ()
+is important to avoid the parser getting confused.
+By contrast, the following examples will
+.Em not
+behave as expected.
+.Dl ${"1 < 0":?always:no}
+.Dl ${NUMBERS:M42:?always:no}
+in both cases the expansion will always be
+.Ql always .
 .It Ar :old_string=new_string
 This is the
 .At V
