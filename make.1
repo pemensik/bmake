@@ -1,4 +1,4 @@
-.\"	$NetBSD: make.1,v 1.141 2008/10/22 15:04:49 apb Exp $
+.\"	$NetBSD: make.1,v 1.144 2008/10/30 08:44:18 wiz Exp $
 .\"
 .\" Copyright (c) 1990, 1993
 .\"	The Regents of the University of California.  All rights reserved.
@@ -29,7 +29,7 @@
 .\"
 .\"	from: @(#)make.1	8.4 (Berkeley) 3/19/94
 .\"
-.Dd October 22, 2008
+.Dd October 29, 2008
 .Dt MAKE 1
 .Os
 .Sh NAME
@@ -1010,16 +1010,17 @@ if
 contains the value 42 (the quotes are important).
 The second expands to
 .Ql zero
-unless 
+unless
 .Dv NUMBER
 is set to a value greater than 0.
-The last case expands to 
+The last case expands to
 .Ql empty
 or
 .Ql set
 depending on whether
 .Dv NUMBER
-is empty.  In this example, use of 
+is empty.
+In this example, use of
 .Ql {}
 rather than
 .Ql ()
