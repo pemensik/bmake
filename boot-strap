@@ -51,7 +51,7 @@
 #	Simon J. Gerraty <sjg@crufty.net>
 
 # RCSid:
-#	$Id: boot-strap,v 1.23 2008/05/15 05:46:19 sjg Exp $
+#	$Id: boot-strap,v 1.25 2009/08/27 00:14:31 sjg Exp $
 #
 #	@(#) Copyright (c) 2001 Simon J. Gerraty
 #
@@ -193,6 +193,7 @@ ${MAKE:-make} -f makefile.boot bootstrap || exit 1
 $quiet exit 0
 
 make_version=`./bmake -m ./mk -m $prefix/share/mk -m /usr/share/mk -f ./Makefile -V MAKE_VERSION | ( read one two; echo $one )`
+bmake_version=bmake-$make_version
 
 install_prefix() {
        bindir=$1/bin
@@ -202,9 +203,9 @@ install_prefix() {
        echo Commands to install into $1/
        echo
        echo mkdir -p $bindir
-       echo cp $objdir/bmake $bindir/$make_version
+       echo cp $objdir/bmake $bindir/$bmake_version
        echo rm -f $bindir/bmake
-       echo ln -s $make_version $bindir/bmake
+       echo ln -s $bmake_version $bindir/bmake
        if [ -s bmake.cat1 ]; then
 	       echo mkdir -p $mandir/man1
 	       echo cp $srcdir/bmake.1 $mandir/man1
@@ -212,7 +213,7 @@ install_prefix() {
 	       echo mkdir -p $mandir/cat1
 	       echo cp $srcdir/bmake.cat1 $mandir/cat1/bmake.1
        fi
-       [ "$mksrc" ] && echo $mksrc/install-mk $mkdir
+       [ "$mksrc" ] && echo sh $mksrc/install-mk $mkdir
 }
 
 case $prefix/ in
