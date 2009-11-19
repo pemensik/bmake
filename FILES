@@ -104,3 +104,5 @@ unit-tests/test.exp
 unit-tests/varcmd
 unit-tests/modmisc
 unit-tests/dotwait
+unit-tests/unexport
+unit-tests/unexport-env

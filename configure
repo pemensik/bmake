@@ -8072,9 +8072,12 @@ esac
 
 fi
 
+srcdir=`cd $srcdir && pwd`
 for mksrc in $mksrc $srcdir/mk $srcdir/../mk mk
 do
-        test -s $mksrc/install-mk && break
+	test -s $mksrc/install-mk || continue
+	mksrc=`cd $mksrc && pwd`
+	break
 done
 mksrc=`echo $mksrc | sed "s,$srcdir,\\\${srcdir},"`
 echo "Using: MKSRC=$mksrc" 1>&6

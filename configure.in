@@ -1,6 +1,6 @@
 dnl
 dnl RCSid:
-dnl	$Id: configure.in,v 1.30 2009/09/03 23:45:26 sjg Exp $
+dnl	$Id: configure.in,v 1.31 2009/10/30 23:39:35 sjg Exp $
 dnl
 dnl Process this file with autoconf to produce a configure script
 dnl
@@ -265,9 +265,12 @@ esac
 dnl
 dnl Now make sure we have a value
 dnl
+srcdir=`cd $srcdir && pwd`
 for mksrc in $mksrc $srcdir/mk $srcdir/../mk mk
 do
-        test -s $mksrc/install-mk && break
+	test -s $mksrc/install-mk || continue
+	mksrc=`cd $mksrc && pwd`
+	break
 done
 mksrc=`echo $mksrc | sed "s,$srcdir,\\\${srcdir},"`
 echo "Using: MKSRC=$mksrc" 1>&6
