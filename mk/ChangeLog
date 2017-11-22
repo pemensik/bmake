@@ -1,3 +1,9 @@
+2017-11-14  Simon J. Gerraty  <sjg@bad.crufty.net>
+
+	* install-mk (MK_VERSION): 20171111
+
+	* lib.mk: ensure META_NOECHO is set
+
 2017-10-25  Simon J. Gerraty  <sjg@bad.crufty.net>
 
 	* Allow for host32 on rare occasions.

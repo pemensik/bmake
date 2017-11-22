@@ -1,4 +1,4 @@
-# $Id: varcmd.mk,v 1.1.1.1 2014/08/30 18:57:18 sjg Exp $
+# $Id: varcmd.mk,v 1.1.1.2 2017/11/18 22:35:04 sjg Exp $
 #
 # Test behaviour of recursive make and vars set on command line.
 
@@ -24,6 +24,14 @@ three:	show
 	@${.MAKE} -f ${MAKEFILE} four
 
 
+.ifmake two
+# this should not work
+FU+= oops
+_FU:= ${FU}
+two: immutable
+immutable:
+	@echo "$@ FU='${_FU}'"
+.endif
 .ifmake four
 VAR=Internal
 .MAKEOVERRIDES+= VAR

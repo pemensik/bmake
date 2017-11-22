@@ -1,4 +1,4 @@
-# $Id: lib.mk,v 1.62 2017/06/11 03:24:04 sjg Exp $
+# $Id: lib.mk,v 1.63 2017/11/15 05:52:20 sjg Exp $
 
 .if !target(__${.PARSEFILE}__)
 __${.PARSEFILE}__:
@@ -36,6 +36,8 @@ PICO?= .pico
 .SUFFIXES: .sh .m4 .m
 
 CFLAGS+=	${COPTS}
+
+META_NOECHO?= echo
 
 # Originally derrived from NetBSD-1.6
 
