@@ -1,6 +1,6 @@
-# $Id: Makefile.in,v 1.49 2018/09/21 21:39:05 sjg Exp $
+# $Id: Makefile,v 1.51 2020/01/22 01:19:25 sjg Exp $
 #
-# $NetBSD: Makefile,v 1.53 2018/05/24 00:25:44 christos Exp $
+# $NetBSD: Makefile,v 1.54 2019/11/30 00:38:51 rillig Exp $
 #
 # Unit tests for make(1)
 # The main targets are:
@@ -15,11 +15,11 @@
 # and it should be added to the TESTNAMES list.
 # 
 
-srcdir= @srcdir@
-
 .MAIN: all
 
-UNIT_TESTS:= ${srcdir}
+.-include "Makefile.config"
+
+UNIT_TESTS:= ${.PARSEDIR}
 .PATH: ${UNIT_TESTS}
 
 # Each test is in a sub-makefile.
@@ -54,6 +54,7 @@ TESTNAMES= \
 	unexport-env \
 	varcmd \
 	varmisc \
+	varmod-edge \
 	varquote \
 	varshell
 
@@ -88,7 +89,6 @@ TEST_MAKE?= ${.MAKE}
 TOOL_SED?= sed
 TOOL_TR?= tr
 TOOL_DIFF?= diff
-DIFF_FLAGS?= @diff_u@
 
 .if defined(.PARSEDIR)
 # ensure consistent results from sort(1)
