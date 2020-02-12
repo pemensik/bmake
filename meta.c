@@ -1690,7 +1690,11 @@ meta_compat_parent(pid_t child)
     meta_job_parent(NULL, child);
     close(childPipe[1]);			/* child side */
     outfd = childPipe[0];
+#ifdef USE_FILEMON
     metafd = Mybm.filemon ? filemon_readfd(Mybm.filemon) : -1;
+#else
+    metafd = -1;
+#endif
     maxfd = -1;
     if (outfd > maxfd)
 	    maxfd = outfd;
