@@ -1,4 +1,4 @@
-# $Id: meta.stage.mk,v 1.56 2018/07/08 17:12:54 sjg Exp $
+# $Id: meta.stage.mk,v 1.57 2020/03/19 00:38:01 sjg Exp $
 #
 #	@(#) Copyright (c) 2011-2017, Simon J. Gerraty
 #
@@ -20,7 +20,7 @@
 
 .if ${.MAKE.DEPENDFILE_PREFERENCE:U${.MAKE.DEPENDFILE}:M*.${MACHINE}} != ""
 # this is generally safer anyway
-_dirdep ?= ${RELDIR}.${MACHINE}
+_dirdep ?= ${RELDIR}.${TARGET_SPEC:U${MACHINE}}
 .else
 _dirdep ?= ${RELDIR}
 .endif

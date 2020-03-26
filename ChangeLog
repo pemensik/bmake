@@ -1,3 +1,18 @@
+2020-03-18  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20200318
+	Merge with NetBSD make, pick up
+	o meta.c: meta_oodate, check for corrupted meta file
+	  earlier and more often.
+
+2020-02-20  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20200220
+
+2020-02-19  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* boot-strap: unset MAKEFLAGS
+
 2020-02-12  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20200212
