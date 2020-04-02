@@ -1,3 +1,9 @@
+2020-03-30  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20200330
+	Merge with NetBSD make, pick up
+	o make.h: extern debug_file
+
 2020-03-18  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20200318
