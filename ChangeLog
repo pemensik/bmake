@@ -1,3 +1,10 @@
+2020-04-02  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20200402
+	Merge with NetBSD make, pick up
+	o meta.c: meta_oodate, CHECK_VALID_META is too aggressive for CMD
+	  a blank command is perfectly valid.
+
 2020-03-30  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20200330
