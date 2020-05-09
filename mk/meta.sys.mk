@@ -1,4 +1,4 @@
-# $Id: meta.sys.mk,v 1.34 2019/01/24 19:36:25 sjg Exp $
+# $Id: meta.sys.mk,v 1.35 2020/04/17 21:08:17 sjg Exp $
 
 #
 #	@(#) Copyright (c) 2010, Simon J. Gerraty
@@ -128,9 +128,11 @@ META_NOECHO= :
 # ignore mtime of shell
 # and mtime of makefiles does not matter in meta mode
 .MAKE.META.IGNORE_PATHS += \
-        ${MAKEFILE} \
-        ${SHELL} \
-        ${SYS_MK_DIR}
+	${MAKEFILE} \
+	${MAKE_SHELL} \
+	${SHELL} \
+	${SYS_MK_DIR} \
+
 
 .if ${UPDATE_DEPENDFILE:Uyes:tl} != "no"
 .if ${.MAKEFLAGS:Uno:M-k} != ""

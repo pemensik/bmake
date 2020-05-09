@@ -1,11 +1,11 @@
 dnl
 dnl RCSid:
-dnl	$Id: configure.in,v 1.62 2020/01/22 03:41:01 sjg Exp $
+dnl	$Id: configure.in,v 1.63 2020/04/19 05:17:57 sjg Exp $
 dnl
 dnl Process this file with autoconf to produce a configure script
 dnl
 AC_PREREQ(2.50)
-AC_INIT([bmake], [20181222], [sjg@NetBSD.org])
+AC_INIT([bmake], [20200418], [sjg@NetBSD.org])
 AC_CONFIG_HEADERS(config.h)
 
 dnl make srcdir absolute
@@ -16,6 +16,7 @@ esac
 
 dnl get _MAKE_VERSION
 . $srcdir/VERSION
+OS=`uname -s`
 
 dnl
 AC_ARG_WITH(defshell,
@@ -32,7 +33,10 @@ no)    ;;
        ;;
        esac])
 dnl
-use_makefile=yes
+case "$OS" in
+CYGWIN*|MINGW*) use_makefile=no;;
+*) use_makefile=yes;;
+esac
 AC_ARG_WITH(makefile,
 [ --without-makefile dissable use of generated makefile],
 [case "${withval}" in
@@ -58,7 +62,6 @@ AC_ARG_WITH(filemon,
 *) AC_MSG_ERROR(bad value ${withval} given for filemon) ;;
 esac],
 [
-OS=`uname -s`
 case "$OS" in
 NetBSD) filemon_h=no use_filemon=ktrace;;
 *)
@@ -411,10 +414,11 @@ AC_SUBST(use_meta)
 AC_SUBST(use_filemon)
 AC_SUBST(filemon_h)
 AC_SUBST(_MAKE_VERSION)
-bm_outfiles="Makefile.config unit-tests/Makefile.config"
+bm_outfiles="Makefile.config unit-tests/Makefile.config make-bootstrap.sh"
 if test $use_makefile = yes; then
-   bm_outfiles="makefile make-bootstrap.sh $bm_outfiles"
-
+   bm_outfiles="makefile $bm_outfiles"
+fi
+AC_OUTPUT($bm_outfiles)
 cat <<EOF
 
 You can now run
@@ -424,5 +428,3 @@ You can now run
 to produce a fully functional bmake.
 
 EOF
-fi
-AC_OUTPUT($bm_outfiles)

@@ -1,3 +1,29 @@
+2020-05-06  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20200506
+	Merge with NetBSD make, pick up
+	o str.c: empty string does not match % pattern
+	  plus unit-test changes
+
+2020-05-04  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20200504
+	May the 4th be with you
+	Merge with NetBSD make, pick up
+	o var.c: import handling of old sysV style modifier using '%'
+	o str.c: refactor brk_string
+	o unit-tests: add test case for lazy conditions
+
+2020-04-18  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20200418
+
+	* configure.in: use_makefile=no for cygwin et al.
+	case insensitive filesystems just don't work if both
+	makefile and Makefile exist.
+	NOTE: bmake does not support cygwin and likely never will,
+	but if brave souls want to try it - help them out.
+
 2020-04-02  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20200402

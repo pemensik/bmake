@@ -1,6 +1,6 @@
-# $Id: Makefile,v 1.51 2020/01/22 01:19:25 sjg Exp $
+# $Id: Makefile,v 1.52 2020/05/05 01:01:28 sjg Exp $
 #
-# $NetBSD: Makefile,v 1.54 2019/11/30 00:38:51 rillig Exp $
+# $NetBSD: Makefile,v 1.55 2020/04/29 23:15:21 rillig Exp $
 #
 # Unit tests for make(1)
 # The main targets are:
@@ -26,6 +26,7 @@ UNIT_TESTS:= ${.PARSEDIR}
 # Keep the list sorted.
 TESTNAMES= \
 	comment \
+	cond-late \
 	cond1 \
 	cond2 \
 	error \

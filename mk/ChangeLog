@@ -1,3 +1,31 @@
+2020-05-02  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* whats.mk: greatly simplify by adding what.c to SRCS
+
+2020-05-01  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* whats.mk: for libs take care how we add to *OBJS
+
+	* lib.mk: : works better with whats.mk
+
+2020-04-25  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20200420
+
+	* meta.stage.mk: it is not a STAGE_CONFLICT if some-target.dirdep
+	contains the same ${RELDIR} and a prefix match for our ${TARGET_SPEC}
+
+2020-04-16  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20200416
+
+	* sys/*.mk: set MAKE_SHELL rather than SHELL so as not to
+	  interfere with user env.
+
+	* sys.mk: default MAKE_SHELL to sh and SHELL to MAKE_SHELL
+
+	* autodep.mk: use MAKE_SHELL.
+
 2019-11-21  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* gendirdeps.mk: clear .SUFFIXES to avoid a lot of
