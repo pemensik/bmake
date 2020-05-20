@@ -1,6 +1,7 @@
-# $Id: dirdeps.mk,v 1.100 2019/11/12 06:47:58 sjg Exp $
+# $Id: dirdeps.mk,v 1.104 2020/05/16 23:21:48 sjg Exp $
 
-# Copyright (c) 2010-2013, Juniper Networks, Inc.
+# Copyright (c) 2010-2020, Simon J. Gerraty
+# Copyright (c) 2010-2018, Juniper Networks, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -339,6 +340,17 @@ BUILD_DIRDEPS ?= yes
 DIRDEPS_CACHE ?= ${_OBJDIR:tA}/dirdeps.cache${.TARGETS:Nall:O:u:ts-:S,/,_,g:S,^,.,:N.}
 .endif
 
+.if ${DEBUG_DIRDEPS:@x@${DEP_RELDIR:M$x}${${DEP_RELDIR}.${DEP_MACHINE}:L:M$x}@} != ""
+_debug_reldir = 1
+.else
+_debug_reldir = 0
+.endif
+.if ${DEBUG_DIRDEPS:@x@${DEP_RELDIR:M$x}${${DEP_RELDIR}.depend:L:M$x}@} != ""
+_debug_search = 1
+.else
+_debug_search = 0
+.endif
+
 # pickup customizations
 # as below you can use !target(_DIRDEP_USE) to protect things
 # which should only be done once.
@@ -486,6 +498,7 @@ ${DIRDEPS_CACHE}:	.META .NOMETA_CMP
 	${BUILD_DIRDEPS_TARGETS} BUILD_DIRDEPS_CACHE=yes \
 	.MAKE.DEPENDFILE=.none \
 	${.MAKEFLAGS:tW:S,-D ,-D,g:tw:M*WITH*} \
+	${.MAKEFLAGS:tW:S,-d ,-d,g:tw:M-d*} \
 	3>&1 1>&2 | sed 's,${SRCTOP},$${SRCTOP},g' >> ${.TARGET}.new && \
 	mv ${.TARGET}.new ${.TARGET}
 
@@ -506,16 +519,6 @@ _count_dirdeps: .NOMETA
 .endif
 
 .if ${BUILD_DIRDEPS} == "yes"
-.if ${DEBUG_DIRDEPS:@x@${DEP_RELDIR:M$x}${${DEP_RELDIR}.${DEP_MACHINE}:L:M$x}@} != ""
-_debug_reldir = 1
-.else
-_debug_reldir = 0
-.endif
-.if ${DEBUG_DIRDEPS:@x@${DEP_RELDIR:M$x}${${DEP_RELDIR}.depend:L:M$x}@} != ""
-_debug_search = 1
-.else
-_debug_search = 0
-.endif
 
 # the rest is done repeatedly for every Makefile.depend we read.
 # if we are anything but the original dir we care only about the

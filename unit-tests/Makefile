@@ -1,6 +1,6 @@
-# $Id: Makefile,v 1.52 2020/05/05 01:01:28 sjg Exp $
+# $Id: Makefile,v 1.54 2020/05/17 17:26:14 sjg Exp $
 #
-# $NetBSD: Makefile,v 1.55 2020/04/29 23:15:21 rillig Exp $
+# $NetBSD: Makefile,v 1.58 2020/05/17 12:36:26 rillig Exp $
 #
 # Unit tests for make(1)
 # The main targets are:
@@ -29,15 +29,17 @@ TESTNAMES= \
 	cond-late \
 	cond1 \
 	cond2 \
+	dollar \
+	doterror \
+	dotwait \
 	error \
 	export \
 	export-all \
 	export-env \
-	doterror \
-	dotwait \
 	forloop \
 	forsubst \
 	hash \
+	include-main \
 	misc \
 	moderrs \
 	modmatch \

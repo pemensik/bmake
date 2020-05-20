@@ -1,3 +1,21 @@
+2020-05-17  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20200517
+	Merge with NetBSD make, pick up
+	o modified dollar tests to avoid shell dependencies
+	o new tests for .INCLUDEFROM
+
+2020-05-16  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* unit-tests/dollar.mk: tweak  '1 dollar literal' test
+	to not depend so much on shell behavior
+
+2020-05-10  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20200510
+	Merge with NetBSD make, pick up
+	o unit test for dollar handling
+
 2020-05-06  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20200506

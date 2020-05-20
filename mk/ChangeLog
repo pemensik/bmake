@@ -1,3 +1,14 @@
+2020-05-15  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20200515
+
+	* dirdeps.mk: set _debug_* earlier and allow passing -d*
+	flags to submake when building DIRDEPS_CACHE
+
+2020-05-09  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* whats.mk: more easily extensible
+
 2020-05-02  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* whats.mk: greatly simplify by adding what.c to SRCS

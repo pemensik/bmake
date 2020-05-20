@@ -1,6 +1,7 @@
-# $Id: gendirdeps.mk,v 1.41 2019/11/21 23:50:40 sjg Exp $
+# $Id: gendirdeps.mk,v 1.42 2020/05/16 23:21:48 sjg Exp $
 
-# Copyright (c) 2010-2013, Juniper Networks, Inc.
+# Copyright (c) 2011-2020, Simon J. Gerraty
+# Copyright (c) 2010-2018, Juniper Networks, Inc.
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without

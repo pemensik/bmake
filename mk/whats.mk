@@ -1,6 +1,6 @@
-# $Id: whats.mk,v 1.8 2020/05/09 02:34:35 sjg Exp $
+# $Id: whats.mk,v 1.9 2020/05/09 19:48:53 sjg Exp $
 #
-#	@(#) Copyright (c) 2014, Simon J. Gerraty
+#	@(#) Copyright (c) 2014-2020, Simon J. Gerraty
 #
 #	This file is provided in the hope that it will
 #	be of use.  There is absolutely NO WARRANTY.
@@ -33,23 +33,37 @@ what_uuid = what_${what_thing}_${.CURDIR:T:hash}
 what_var = what_${.CURDIR:T:hash}
 
 SRCS += ${what_uuid}.c
-CLEANFILES+= ${what_uuid}.c
+CLEANFILES += ${what_uuid}.c
 # we do not need to capture this
-SUPPRESS_DEPEND+= *${what_uuid}.c
+SUPPRESS_DEPEND += *${what_uuid}.c
 
-SB?= ${SRCTOP:H}
-SB_LOCATION?= ${HOST}:${SB}
-what_location:= ${.OBJDIR:S,${SB},${SB_LOCATION},}
+SB ?= ${SRCTOP:H}
+SB_LOCATION ?= ${HOST}:${SB}
+# make customization easy
+WHAT_LOCATION ?= ${.OBJDIR:S,${SB},${SB_LOCATION},}
+WHAT_1 ?= ${what_thing:tu} built ${%Y%m%d:L:localtime} by ${USER}
+WHAT_2 ?= ${what_location}
+WHAT_LINE_IDS ?= 1 2
+WHAT_NOCMP_LINE_IDS ?= 1
+# you can add other WHAT_* just be sure to set WHAT_LINE_IDS
+# and WHAT_NOCMP_LINE_IDS accordingly
 
 # this works with clang and gcc
-_what_t= const char __attribute__ ((section(".data")))
-_what1:= @(\#)${what_thing:tu} built ${%Y%m%d:L:localtime} by ${USER}
-_what2:= @(\#)${what_location}
+what_t = const char __attribute__ ((section(".data")))
+what_location := ${WHAT_LOCATION}
 
+# this script is done in multiple lines so we can
+# use the token ${.OODATE:MNO_META_CMP}
+# to prevent the variable parts making this constantly out-of-date
 ${what_uuid}.c:
-	echo 'extern const char ${what_var}1[], ${what_var}2[];' > $@
-	echo '${_what_t} ${what_var}1[] = "${_what1}";' >> $@ ${.OODATE:MNO_META_CMP}
-	echo '${_what_t} ${what_var}2[] = "${_what2}";' >> $@
+	echo 'extern const char ${WHAT_LINE_IDS:@i@${what_var}_$i[]@:ts,};' > $@
+.for i in ${WHAT_LINE_IDS}
+.if ${WHAT_NOCMP_LINE_IDS:M$i} != ""
+	echo '${what_t} ${what_var}_$i[] = "@(#)${WHAT_$i}";' >> $@ ${.OODATE:MNO_META_CMP}
+.else
+	echo '${what_t} ${what_var}_$i[] = "@(#)${WHAT_$i}";' >> $@
+.endif
+.endfor
 
 .endif
 .endif
