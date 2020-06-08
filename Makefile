@@ -1,4 +1,4 @@
-#	$Id: Makefile,v 1.105 2020/05/20 20:24:01 sjg Exp $
+#	$Id: Makefile,v 1.107 2020/06/07 21:18:46 sjg Exp $
 
 PROG=	bmake
 
@@ -158,7 +158,7 @@ MAN1= ${MAN}
 .if (${PROG} != "make")
 CLEANFILES+= my.history
 .if make(${MAN}) || !exists(${srcdir}/${MAN})
-my.history: ${MAKEFILE}
+my.history:
 	@(echo ".Nm"; \
 	echo "is derived from NetBSD"; \
 	echo ".Xr make 1 ."; \
@@ -207,7 +207,7 @@ ${OBJS}: config.h
 # start-delete2 for bsd.after-import.mk
 
 # make sure that MAKE_VERSION gets updated.
-main.o: ${SRCS} ${.CURDIR}/VERSION
+main.o: ${srcdir}/VERSION
 
 .if ${MK_AUTOCONF_MK} == "yes"
 CONFIGURE_DEPS += ${.CURDIR}/VERSION
