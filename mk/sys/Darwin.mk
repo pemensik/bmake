@@ -1,7 +1,7 @@
 #	$NetBSD: Darwin.sys.mk,v 1.3 2003/02/16 09:44:41 grant Exp $
 #	@(#)sys.mk	8.2 (Berkeley) 3/21/94
 
-OS=		Darwin
+OS ?=		Darwin
 unix?=		We run ${OS}.
 
 .SUFFIXES: .out .a .ln .o .s .S .c .m ${CXX_SUFFIXES} .F .f .r .y .l .cl .p .h
@@ -9,9 +9,9 @@ unix?=		We run ${OS}.
 
 .LIBS:		.a .dylib
 
-SHLIBEXT =	.dylib
-HOST_LIBEXT =	.dylib
-DSHLIBEXT =	.dylib
+SHLIBEXT  ?=	.dylib
+HOST_LIBEXT  ?=	.dylib
+DSHLIBEXT  ?=	.dylib
 
 AR?=		ar
 ARFLAGS?=	rl
@@ -54,7 +54,7 @@ COMPILE.m?=	${OBJC} ${OBJCFLAGS} ${CPPFLAGS} -c
 LINK.m?=	${OBJC} ${OBJCFLAGS} ${CPPFLAGS} ${LDFLAGS}
 
 CPP?=		cpp
-NOLINT=		1
+NOLINT ?=		1
 CPPFLAGS?=
 
 MK_DEP?=	mkdep
@@ -78,11 +78,11 @@ LEX.l?=		${LEX} ${LFLAGS}
 LD?=		ld
 LDFLAGS?=
 
-SHLIB_TEENY = 0
-SHLIB_MINOR = 0
+SHLIB_TEENY  ?= 0
+SHLIB_MINOR  ?= 0
 
-MKPICLIB = no
-LIBEXT = .dylib
+MKPICLIB  ?= no
+LIBEXT  ?= .dylib
 
 LINT?=		lint
 LINTFLAGS?=	-chapbx

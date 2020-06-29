@@ -1,7 +1,7 @@
 #	$NetBSD: sys.mk,v 1.66.2.1 2002/06/05 03:31:01 lukem Exp $
 #	@(#)sys.mk	8.2 (Berkeley) 3/21/94
 
-OS=		NetBSD
+OS ?=		NetBSD
 unix?=		We run ${OS}.
 
 .if !defined(MAKE_VERSION)
@@ -9,13 +9,13 @@ unix?=		We run ${OS}.
 # which defined MAKE_VERSION between 20010609 and 20090324
 # so we can make a rough guess
 .if defined(.MAKE.LEVEL)
-MAKE_VERSION = 20090908
+MAKE_VERSION  ?= 20090908
 .elif defined(.MAKE.MAKEFILES)
 # introduced 20071008
-MAKE_VERSION = 20090324
+MAKE_VERSION  ?= 20090324
 .else
 # this just before when MAKE_VERSION was introduced
-MAKE_VERSION = 20010606
+MAKE_VERSION  ?= 20010606
 .endif
 .endif
 
@@ -40,13 +40,13 @@ CC?=		cc
 # need to make sure this is set
 MACHINE_ARCH.${MACHINE} ?= ${MACHINE}
 .if empty(MACHINE_ARCH)
-MACHINE_ARCH = ${MACHINE_ARCH.${MACHINE}}
+MACHINE_ARCH  ?= ${MACHINE_ARCH.${MACHINE}}
 .endif
 
 #
 # CPU model, derived from MACHINE_ARCH
 #
-MACHINE_CPU=	${MACHINE_ARCH:C/mipse[bl]/mips/:C/mips64e[bl]/mips/:C/sh3e[bl]/sh3/:S/m68000/m68k/:S/armeb/arm/}
+MACHINE_CPU ?=	${MACHINE_ARCH:C/mipse[bl]/mips/:C/mips64e[bl]/mips/:C/sh3e[bl]/sh3/:S/m68000/m68k/:S/armeb/arm/}
 
 .if ${MACHINE_CPU} == "alpha" || \
     ${MACHINE_CPU} == "arm" || \

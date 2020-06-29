@@ -1,7 +1,7 @@
 #	$NetBSD: OpenBSD.sys.mk,v 1.1 2002/11/17 09:18:00 cjep Exp $
 #	@(#)sys.mk	8.2 (Berkeley) 3/21/94
 
-OS=		OpenBSD
+OS ?=		OpenBSD
 unix?=		We run ${OS}.
 
 .SUFFIXES: .out .a .ln .o .s .S .c ${CXX_SUFFIXES} .F .f .r .y .l .cl .p .h
@@ -12,7 +12,7 @@ unix?=		We run ${OS}.
 # need to make sure this is set
 MACHINE_ARCH.${MACHINE} ?= ${MACHINE}
 .if empty(MACHINE_ARCH)
-MACHINE_ARCH = ${MACHINE_ARCH.${MACHINE}}
+MACHINE_ARCH  ?= ${MACHINE_ARCH.${MACHINE}}
 .endif
 
 AR?=		ar

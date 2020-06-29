@@ -1,5 +1,6 @@
 ChangeLog
 FILES
+LICENSE
 Makefile
 Makefile.config.in
 PSD.doc/Makefile

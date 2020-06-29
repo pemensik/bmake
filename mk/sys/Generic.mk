@@ -1,4 +1,4 @@
-#	$Id: Generic.mk,v 1.14 2020/04/17 21:08:17 sjg Exp $
+#	$Id: Generic.mk,v 1.15 2020/06/29 02:08:45 sjg Exp $
 #
 
 # some reasonable defaults
@@ -7,7 +7,7 @@
 
 .LIBS:		.a
 
-tools = \
+tools  ?= \
 	ar \
 	lorder \
 	ranlib \

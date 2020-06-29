@@ -1,16 +1,16 @@
-#	$Id: UnixWare.mk,v 1.4 2020/04/17 21:08:17 sjg Exp $
+#	$Id: UnixWare.mk,v 1.5 2020/06/29 02:08:45 sjg Exp $
 #	based on "Id: SunOS.5.sys.mk,v 1.6 2003/09/30 16:42:23 sjg Exp "
 #	$NetBSD: sys.mk,v 1.19.2.1 1994/07/26 19:58:31 cgd Exp $
 #	@(#)sys.mk	5.11 (Berkeley) 3/13/91
 
 OS?=		UnixWare
 unix?=		We run ${OS}.
-ROOT_GROUP=	root
+ROOT_GROUP ?=	root
 
 # can't fine one anywhere, so just stop the dependency
-LIBCRT0= /dev/null
+LIBCRT0 ?= /dev/null
 
-PATH=/usr/sbin:/usr/bin:/usr/ccs/bin:/usr/ccs/lib:/usr/ucb:/usr/local/bin
+PATH ?=/usr/sbin:/usr/bin:/usr/ccs/bin:/usr/ccs/lib:/usr/ucb:/usr/local/bin
 
 .SUFFIXES: .out .a .ln .o .c ${CXX_SUFFIXES} .F .f .r .y .l .s .S .cl .p .h .sh .m4
 
