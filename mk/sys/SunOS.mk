@@ -1,10 +1,10 @@
-#	$Id: SunOS.mk,v 1.10 2020/06/29 02:08:45 sjg Exp $
+#	$Id: SunOS.mk,v 1.11 2020/06/29 14:34:42 sjg Exp $
 
 .if ${.PARSEFILE} == "sys.mk"
 .include <host-target.mk>
 
-OS?=		SunOS.${HOST_OSMAJOR}
-unix?=		We run ${OS}.
+OS ?=		SunOS.${HOST_OSMAJOR}
+unix ?=		We run ${OS}.
 .endif
 
 .if ${HOST_OSMAJOR} > 4

@@ -1,3 +1,9 @@
+2020-06-29  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20200629
+	Merge with NetBSD make, pick up
+	o cond.c: do not eval unnecessary terms of conditionals.
+
 2020-06-25  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20200625

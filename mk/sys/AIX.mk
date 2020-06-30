@@ -26,7 +26,7 @@ LINK.S ?=		${CC} ${AFLAGS} ${CPPFLAGS} ${LDFLAGS}
 .if exists(/usr/local/bin/gcc)
 CC ?=		gcc
 DBG ?=		-O -g
-STATIC?=		-static
+STATIC ?=		-static
 .else
 CC ?=             cc 
 DBG ?=         -g

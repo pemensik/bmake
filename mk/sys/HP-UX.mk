@@ -1,18 +1,18 @@
-#	$Id: HP-UX.mk,v 1.13 2020/06/29 02:08:45 sjg Exp $
+#	$Id: HP-UX.mk,v 1.14 2020/06/29 14:34:42 sjg Exp $
 #	$NetBSD: sys.mk,v 1.19.2.1 1994/07/26 19:58:31 cgd Exp $
 #	@(#)sys.mk	5.11 (Berkeley) 3/13/91
 
 OS ?=		HP-UX
 ROOT_GROUP ?=	root
-unix?=		We run ${OS}.
+unix ?=		We run ${OS}.
 
 # HP-UX's cc does not provide any clues as to wether this is 9.x or 10.x
 # nor does sys/param.h, so we'll use the existence of /hp-ux
 .if exists("/hp-ux") 
-OSMAJOR?=9
+OSMAJOR ?=9
 .endif
-OSMAJOR?=10
-__HPUX_VERSION?=${OSMAJOR}
+OSMAJOR ?=10
+__HPUX_VERSION ?=${OSMAJOR}
 
 .SUFFIXES: .out .a .ln .o .c ${CXX_SUFFIXES} .F .f .r .y .l .s .S .cl .p .h .sh .m4
 
@@ -24,8 +24,8 @@ LIBCRT0 ?=	/lib/crt0.o
 # +b<path> is needed to stop the binaries from insisting on having
 #	the build tree available :-)
 # +s	tells the dynamic loader to use SHLIB_PATH if set
-LD_bpath?=-Wl,+b/lib:/usr/lib:/usr/local/lib
-LD_spath?=-Wl,+s
+LD_bpath ?=-Wl,+b/lib:/usr/lib:/usr/local/lib
+LD_spath ?=-Wl,+s
 LDADD+= ${LD_bpath} ${LD_spath}
 
 .if exists(/usr/lib/end.o)
@@ -42,11 +42,11 @@ LINK.s ?=		${CC} ${AFLAGS} ${LDFLAGS}
 COMPILE.S ?=	${CC} ${AFLAGS} ${CPPFLAGS} -c
 LINK.S ?=		${CC} ${AFLAGS} ${CPPFLAGS} ${LDFLAGS}
 .if exists(/usr/local/bin/gcc)
-PIPE?= -pipe
-CC?=		gcc ${PIPE}
+PIPE ?= -pipe
+CC ?=		gcc ${PIPE}
 AS ?=		gas
-DBG?=		-O -g
-STATIC?=		-static
+DBG ?=		-O -g
+STATIC ?=		-static
 .if defined(DESTDIR)
 CPPFLAGS+=	-nostdinc -idirafter ${DESTDIR}/usr/include
 .endif
@@ -55,18 +55,18 @@ CPPFLAGS+=	-nostdinc -idirafter ${DESTDIR}/usr/include
 AS ?=		as
 CC ?=             cc
 .if exists(/opt/ansic/bin/cc)
-CCMODE?=-Ae +ESlit
-PICFLAG?= +z
+CCMODE ?=-Ae +ESlit
+PICFLAG ?= +z
 LD_x=
-DBG?=-g -O
+DBG ?=-g -O
 .endif
-DBG?=         
-STATIC?=         -Wl,-a,archive
+DBG ?=         
+STATIC ?=         -Wl,-a,archive
 .endif
 .if (${__HPUX_VERSION} == "10")
-CCSOURCE_FLAGS?= -D_HPUX_SOURCE
+CCSOURCE_FLAGS ?= -D_HPUX_SOURCE
 .else
-CCSOURCE_FLAGS?= -D_HPUX_SOURCE -D_INCLUDE_POSIX_SOURCE -D_INCLUDE_XOPEN_SOURCE -D_INCLUDE_XOPEN_SOURCE_EXTENDED
+CCSOURCE_FLAGS ?= -D_HPUX_SOURCE -D_INCLUDE_POSIX_SOURCE -D_INCLUDE_XOPEN_SOURCE -D_INCLUDE_XOPEN_SOURCE_EXTENDED
 .endif
 CFLAGS ?=		${DBG}
 CFLAGS+ ?= ${CCMODE} -D__hpux__ -D__HPUX_VERSION=${__HPUX_VERSION} ${CCSOURCE_FLAGS}

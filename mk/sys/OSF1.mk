@@ -1,9 +1,9 @@
-#	$Id: OSF1.mk,v 1.10 2020/06/29 02:08:45 sjg Exp $
+#	$Id: OSF1.mk,v 1.11 2020/06/29 14:34:42 sjg Exp $
 #	$NetBSD: sys.mk,v 1.19.2.1 1994/07/26 19:58:31 cgd Exp $
 #	@(#)sys.mk	5.11 (Berkeley) 3/13/91
 
-OS?=		OSF1
-unix?=		We run ${OS}.
+OS ?=		OSF1
+unix ?=		We run ${OS}.
 ROOT_GROUP ?=	system
 
 # can't fine one anywhere, so just stop the dependency
@@ -31,9 +31,9 @@ LINK.s ?=		${CC} ${AFLAGS} ${LDFLAGS}
 COMPILE.S ?=	${CC} ${AFLAGS} ${CPPFLAGS} -c
 LINK.S ?=		${CC} ${AFLAGS} ${CPPFLAGS} ${LDFLAGS}
 .if exists(/opt/gnu/bin/gcc) || exists(/usr/local/bin/gcc)
-CC?=		gcc 
+CC ?=		gcc 
 .else
-CC?=             cc -std
+CC ?=             cc -std
 .endif
 .if (${CC:T} == "gcc")
 DBG ?=		-O -g
