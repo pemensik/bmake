@@ -1,4 +1,4 @@
-# $Id: export.mk,v 1.1.1.4 2020/08/08 22:34:25 sjg Exp $
+# $Id: export.mk,v 1.1.1.5 2020/09/28 01:27:05 sjg Exp $
 
 UT_TEST=export
 UT_FOO=foo${BAR}
@@ -37,7 +37,7 @@ BAR=bar is ${UT_FU}
 
 .MAKE.EXPORTED+= UT_ZOO UT_TEST
 
-FILTER_CMD?=	egrep -v '^(MAKEFLAGS|PATH|PWD|SHLVL|_)='
+FILTER_CMD?=	egrep -v '^(MAKEFLAGS|MALLOC_OPTIONS|PATH|PWD|SHLVL|_)='
 
 all:
 	@env | ${FILTER_CMD} | sort

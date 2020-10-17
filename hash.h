@@ -1,4 +1,4 @@
-/*	$NetBSD: hash.h,v 1.21 2020/09/01 21:11:31 rillig Exp $	*/
+/*	$NetBSD: hash.h,v 1.26 2020/10/05 20:21:30 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990 The Regents of the University of California.
@@ -90,10 +90,10 @@ typedef struct Hash_Entry {
 typedef struct Hash_Table {
     Hash_Entry **buckets;	/* Pointers to Hash_Entry, one
 				 * for each bucket in the table. */
-    int 	bucketsSize;
-    int 	numEntries;	/* Number of entries in the table. */
-    int 	bucketsMask;	/* Used to select the bucket for a hash. */
-    int 	maxchain;	/* max length of chain detected */
+    unsigned int bucketsSize;
+    unsigned int numEntries;	/* Number of entries in the table. */
+    unsigned int bucketsMask;	/* Used to select the bucket for a hash. */
+    unsigned int maxchain;	/* max length of chain detected */
 } Hash_Table;
 
 /*
@@ -101,26 +101,27 @@ typedef struct Hash_Table {
  * to record where we are in the search.
  */
 typedef struct Hash_Search {
-    Hash_Table  *table;		/* Table being searched. */
-    int 	nextBucket;	/* Next bucket to check (after current). */
-    Hash_Entry 	*entry;		/* Next entry to check in current bucket. */
+    Hash_Table *table;		/* Table being searched. */
+    unsigned int nextBucket;	/* Next bucket to check (after current). */
+    Hash_Entry *entry;		/* Next entry to check in current bucket. */
 } Hash_Search;
 
-static inline void * MAKE_ATTR_UNUSED
+static inline MAKE_ATTR_UNUSED void *
 Hash_GetValue(Hash_Entry *h)
 {
     return h->value;
 }
 
-static inline void MAKE_ATTR_UNUSED
+static inline MAKE_ATTR_UNUSED void
 Hash_SetValue(Hash_Entry *h, void *datum)
 {
     h->value = datum;
 }
 
-void Hash_InitTable(Hash_Table *, int);
+void Hash_InitTable(Hash_Table *);
 void Hash_DeleteTable(Hash_Table *);
 Hash_Entry *Hash_FindEntry(Hash_Table *, const char *);
+void *Hash_FindValue(Hash_Table *, const char *);
 Hash_Entry *Hash_CreateEntry(Hash_Table *, const char *, Boolean *);
 void Hash_DeleteEntry(Hash_Table *, Hash_Entry *);
 Hash_Entry *Hash_EnumFirst(Hash_Table *, Hash_Search *);

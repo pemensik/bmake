@@ -1,3 +1,98 @@
+2020-10-10  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* main.c: check for CTL_HW being defined.
+	* unit-tests/Makefile: ensure export tests output are POSIX compliant
+	disable opt-debug-jobs test until it works on ubuntu
+
+	* VERSION (_MAKE_VERSION): 20201010
+	Merge with NetBSD make, pick up
+	o dir.c: remove pathname limit for Dir_FindHereOrAbove
+	o hash.c: replace strcpy with memcpy in Hash_CreateEntry
+	o main.c: extract init_machine and init_machine_arch from main
+	allow to disable debug logging options
+	o parse.c: enable format string truncation warnings
+	extract parsing of sources from ParseDoDependency
+	split ParseDoSrc into smaller functions
+	hide implementation details from Parse_DoVar
+	clean up parsing of variable assignments
+	split Parse_DoVar into manageable pieces
+	don't modify the given line during Parse_DoVar
+	fix out-of-bounds memory access in Parse_DoVar
+	fix parsing of the :sh assignment modifier
+	o var.c: rework memory allocation for the name of variables
+	extract ApplyModifier_Literal into separate function
+	in lint mode, reject modifiers without delimiter
+	do not export variable names starting with '-'
+	o fix double-free bug in -DCLEANUP mode
+	o more cleanup to enable higher warnings level
+	o more unit tests
+
+2020-10-02  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20201002
+	Merge with NetBSD make, pick up
+	o dir.c: use hash table for looking up open directories by name
+	o main.c: clean up option handling
+	o parse.c: add missing const for Parse_AddIncludeDir
+	o var.c: ApplyModifier_To, update pp in each branch
+	o remove redundant function prototypes
+	o more unit tests
+
+2020-10-01  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20201001
+	Merge with NetBSD make, pick up
+	o compat.c: comment about "..."
+
+2020-09-30  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20200930
+	Merge with NetBSD make, pick up
+	o job.c: split Job.jobPipe into 2 separate fields
+	replace Lst_Open with direct iteration
+	o lst.c: remove redundant assertions
+	o targ.c: replace Lst_Open with direct iteration
+	o var.c: fix bug in evaluation of indirect variable modifiers
+	extract ApplyModifier_Quote into separate function
+	o make debug logging simpler
+
+2020-09-27  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20200927
+	Merge with NetBSD make, pick up
+	o parse.c: ensure parse errors result in 'stopped in' message.
+	o compat.c: make parameter of Compat_RunCommand const
+	o main.c: extract InitVarTarget from main
+	o parse.c: rename ParseFinishLine to FinishDependencyGroup
+	refactor ParseDoDependency
+	o var.c: Var_Subst no longer returns string result
+	rename Var_ParsePP back to Var_Parse
+	in lint mode, improve error handling for undefined variables
+	extract ParseVarname from Var_Parse
+	o rename Lst_ForEach to Lst_ForEachUntil
+	o inline Lst_ForEachUntil in several cases
+	o clean up API for finding and creating GNodes
+	o fix assertion failure in -j mode with .END node
+	o inline and remove LstNode_Prev and LstNode_Next
+	o use fine-grained type names for lists and their nodes
+	o more unit tests
+
+2020-09-11  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20200911
+	Merge with NetBSD make, pick up
+	o cond.c: split EvalComparison into smaller functions
+	reorder parameters of condition parsing functions
+	reduce code size in CondParser_Eval
+	rename CondGetString to CondParser_String
+	add CondLexer_SkipWhitespace
+	group the condition parsing state into a struct
+	in CondGetString, replace repeated Buf_Add with Buf_AddStr
+	o migrate Var_Parse to Var_ParsePP
+	o add wrappers around ctype.h functions
+	o lst.c: use a stack instead of a list for the nested include path
+	o more unit tests
+
 2020-09-04  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* make-bootstrap.sh.in: adjust object list

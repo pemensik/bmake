@@ -1,3 +1,15 @@
+2020-10-01  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20201001
+
+	* meta2deps.{py,sh}: throw an error if we don't see filemon version
+
+2020-09-09  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20200909
+
+	* dirdeps-cache-update.mk: use cache_update_dirdep as guard target
+
 2020-08-26  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* dirdeps.mk: ensure we cannot confuse a static cache for dynamic
