@@ -1,6 +1,6 @@
-# $Id: Makefile,v 1.100 2020/10/10 21:10:23 sjg Exp $
+# $Id: Makefile,v 1.107 2020/11/02 00:40:25 sjg Exp $
 #
-# $NetBSD: Makefile,v 1.164 2020/10/08 19:11:35 rillig Exp $
+# $NetBSD: Makefile,v 1.181 2020/11/01 19:02:22 rillig Exp $
 #
 # Unit tests for make(1)
 #
@@ -68,18 +68,20 @@ TESTS+=		cond-token-string
 TESTS+=		cond-token-var
 TESTS+=		cond-undef-lint
 TESTS+=		cond1
-TESTS+=		cond2
 TESTS+=		counter
 TESTS+=		counter-append
 TESTS+=		dep
 TESTS+=		dep-colon
 TESTS+=		dep-colon-bug-cross-file
 TESTS+=		dep-double-colon
+TESTS+=		dep-double-colon-indep
 TESTS+=		dep-exclam
 TESTS+=		dep-none
+TESTS+=		dep-percent
 TESTS+=		dep-var
 TESTS+=		dep-wildcards
 TESTS+=		depsrc
+TESTS+=		depsrc-end
 TESTS+=		depsrc-exec
 TESTS+=		depsrc-ignore
 TESTS+=		depsrc-made
@@ -248,10 +250,16 @@ TESTS+=		shell-csh
 TESTS+=		shell-custom
 TESTS+=		shell-ksh
 TESTS+=		shell-sh
-TESTS+=		# suffixes	# runs into an endless loop (try -dA)
+TESTS+=		suff-add-later
+TESTS+=		suff-clear-regular
+TESTS+=		suff-clear-single
+TESTS+=		suff-lookup
+TESTS+=		suff-main
 TESTS+=		suff-rebuild
+TESTS+=		suff-transform-endless
+TESTS+=		suff-transform-expand
+TESTS+=		suff-transform-select
 TESTS+=		sunshcmd
-TESTS+=		sysv
 TESTS+=		ternary
 TESTS+=		unexport
 TESTS+=		unexport-env
@@ -269,6 +277,7 @@ TESTS+=		var-op-default
 TESTS+=		var-op-expand
 TESTS+=		var-op-shell
 TESTS+=		var-op-sunsh
+TESTS+=		var-recursive
 TESTS+=		varcmd
 TESTS+=		vardebug
 TESTS+=		varfind
@@ -351,6 +360,7 @@ TESTS+=		varname-dot-targets
 TESTS+=		varname-empty
 TESTS+=		varname-make
 TESTS+=		varname-make_print_var_on_error
+TESTS+=		varname-make_print_var_on_error-jobs
 TESTS+=		varname-makefile
 TESTS+=		varname-makeflags
 TESTS+=		varname-pwd
@@ -367,6 +377,7 @@ ENV.envfirst=		FROM_ENV=value-from-env
 ENV.varmisc=		FROM_ENV=env
 ENV.varmisc+=		FROM_ENV_BEFORE=env
 ENV.varmisc+=		FROM_ENV_AFTER=env
+ENV.varmod-localtime+=	TZ=Europe/Berlin
 
 # Override make flags for some of the tests; default is -k.
 # If possible, write ".MAKEFLAGS: -dv" in the test .mk file instead of
@@ -386,9 +397,6 @@ FLAGS.opt-warnings-as-errors= -W
 FLAGS.order=		-j1
 FLAGS.recursive=	-dL
 FLAGS.sh-leading-plus=	-n
-FLAGS.vardebug=		-k -dv FROM_CMDLINE=
-FLAGS.varmod-match-escape= -dv
-FLAGS.varname-dot-shell= -dpv
 FLAGS.varname-empty=	-dv '$${:U}=cmdline-u' '=cmline-plain'
 
 # Some tests need extra postprocessing.
@@ -427,18 +435,14 @@ SED_CMDS.varshell+=	-e 's,^${.SHELL:T}: ,,'
 SED_CMDS.varshell+=	-e '/command/s,No such.*,not found,'
 SED_CMDS.varname-dot-parsedir=	-e '/in some cases/ s,^make: "[^"]*,make: "<normalized>,'
 SED_CMDS.varname-dot-parsefile=	-e '/in some cases/ s,^make: "[^"]*,make: "<normalized>,'
-SED_CMDS.varname-dot-shell=	-e 's, = /.*, = (details omitted),'
-SED_CMDS.varname-dot-shell+=	-e 's,"/[^"]*","(details omitted)",'
-SED_CMDS.varname-dot-shell+=	-e 's,\[/[^]]*\],[(details omitted)],'
+SED_CMDS.varname-dot-shell=	-e 's, = /[^ ]*, = (details omitted),g'
+SED_CMDS.varname-dot-shell+=	-e 's,"/[^" ]*","(details omitted)",g'
+SED_CMDS.varname-dot-shell+=	-e 's,\[/[^] ]*\],[(details omitted)],g'
 
 # Some tests need an additional round of postprocessing.
 POSTPROC.deptgt-suffixes= \
 			${TOOL_SED} -n -e '/^\#\*\*\* Suffixes/,/^\#\*/p'
-POSTPROC.vardebug=	${TOOL_SED} -n -e '/:RELEVANT = yes/,/:RELEVANT = no/p'
-POSTPROC.varmod-match-escape= ${TOOL_SED} -n -e '/^Pattern/p'
 POSTPROC.varname=	${TOOL_SED} -n -e '/^MAGIC/p' -e '/^ORDER_/p'
-POSTPROC.varname-dot-shell= \
-			awk '/\.SHELL/ || /^ParseReadLine/'
 POSTPROC.varname-empty=	${TOOL_SED} -n -e '/^Var_Set/p' -e '/^out:/p'
 
 # Some tests reuse other tests, which makes them unnecessarily fragile.
@@ -550,7 +554,12 @@ accept:
 	done
 
 .if exists(${TEST_MAKE})
-${TESTS:=.rawout}: ${TEST_MAKE} ${.PARSEDIR}/Makefile
+${TESTS:=.rawout}: ${TEST_MAKE}
+# in meta mode, we *know* if a target script is impacted
+# by a makefile change.
+.if ${.MAKE.MODE:Unormal:Mmeta} == ""
+${TESTS:=.rawout}: ${.PARSEDIR}/Makefile
+.endif
 .endif
 
 .-include <obj.mk>

@@ -1,3 +1,19 @@
+2020-11-01  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20201101
+
+	* dirdeps.mk: most leaf makefiles are not suitable for building
+	dirdeps.cache so if RELDIR is not "." use dirdeps.mk
+
+2020-10-28  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20201028
+
+	* dirdeps.mk: if we don't have :range use equivalent of M_RANGE
+	when building dirdeps.cache for leaf directory use -f dirdeps.mk
+
+	* sys.vars.mk: add M_JOT and M_RANGE
+
 2020-10-01  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* install-mk (MK_VERSION): 20201001
