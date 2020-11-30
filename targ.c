@@ -1,4 +1,4 @@
-/*	$NetBSD: targ.c,v 1.135 2020/11/16 22:28:44 rillig Exp $	*/
+/*	$NetBSD: targ.c,v 1.141 2020/11/23 23:41:11 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -119,9 +119,12 @@
 #include "dir.h"
 
 /*	"@(#)targ.c	8.2 (Berkeley) 3/19/94"	*/
-MAKE_RCSID("$NetBSD: targ.c,v 1.135 2020/11/16 22:28:44 rillig Exp $");
+MAKE_RCSID("$NetBSD: targ.c,v 1.141 2020/11/23 23:41:11 rillig Exp $");
 
-/* All target nodes found so far, but not the source nodes. */
+/*
+ * All target nodes that appeared on the left-hand side of one of the
+ * dependency operators ':', '::', '!'.
+ */
 static GNodeList *allTargets;
 static HashTable allTargetsByName;
 
@@ -208,7 +211,7 @@ GNode_New(const char *name)
     gn->unmade_cohorts = 0;
     gn->centurion = NULL;
     gn->checked_seqno = 0;
-    HashTable_Init(&gn->context);
+    HashTable_Init(&gn->vars);
     gn->commands = Lst_New();
     gn->suffix = NULL;
     gn->fname = NULL;
@@ -231,16 +234,16 @@ GNode_Free(void *gnp)
     free(gn->uname);
     free(gn->path);
     /* gn->youngestChild is not owned by this node. */
-    Lst_Free(gn->implicitParents); /* ... but not the nodes themselves, */
+    Lst_Free(gn->implicitParents); /* Do not free the nodes themselves, */
     Lst_Free(gn->parents);	/* as they are not owned by this node. */
     Lst_Free(gn->children);	/* likewise */
     Lst_Free(gn->order_pred);	/* likewise */
     Lst_Free(gn->order_succ);	/* likewise */
     Lst_Free(gn->cohorts);	/* likewise */
-    HashTable_Done(&gn->context); /* ... but not the variables themselves,
+    HashTable_Done(&gn->vars);	/* Do not free the variables themselves,
 				 * even though they are owned by this node.
 				 * XXX: they should probably be freed. */
-    Lst_Free(gn->commands);	/* ... but not the commands themselves,
+    Lst_Free(gn->commands);	/* Do not free the commands themselves,
 				 * as they may be shared with other nodes. */
     /* gn->suffix is not owned by this node. */
     /* XXX: gn->suffix should be unreferenced here.  This requires a thorough
@@ -286,6 +289,7 @@ Targ_NewInternalNode(const char *name)
     GNode *gn = GNode_New(name);
     Var_Append(".ALLTARGETS", name, VAR_GLOBAL);
     Lst_Append(allTargets, gn);
+    DEBUG1(TARG, "Adding \"%s\" to all targets.\n", gn->name);
     if (doing_depend)
 	gn->flags |= FROM_DEPEND;
     return gn;
@@ -394,6 +398,8 @@ Targ_FmtTime(time_t tm)
     struct tm *parts;
     static char buf[128];
 
+    /* TODO: Add special case for 0, which often means ENOENT, to make it
+     * independent from time zones. */
     parts = localtime(&tm);
     (void)strftime(buf, sizeof buf, "%k:%M:%S %b %d, %Y", parts);
     return buf;
@@ -410,7 +416,7 @@ Targ_PrintType(int type)
 
     type &= ~OP_OPMASK;
 
-    while (type) {
+    while (type != 0) {
 	tbit = 1 << (ffs(type) - 1);
 	type &= ~tbit;
 

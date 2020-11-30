@@ -1,4 +1,4 @@
-/*	$NetBSD: main.c,v 1.476 2020/11/16 22:08:20 rillig Exp $	*/
+/*	$NetBSD: main.c,v 1.480 2020/11/25 00:50:44 sjg Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -109,7 +109,7 @@
 #include "trace.h"
 
 /*	"@(#)main.c	8.3 (Berkeley) 3/19/94"	*/
-MAKE_RCSID("$NetBSD: main.c,v 1.476 2020/11/16 22:08:20 rillig Exp $");
+MAKE_RCSID("$NetBSD: main.c,v 1.480 2020/11/25 00:50:44 sjg Exp $");
 #if defined(MAKE_NATIVE) && !defined(lint)
 __COPYRIGHT("@(#) Copyright (c) 1988, 1989, 1990, 1993 "
 	    "The Regents of the University of California.  "
@@ -171,12 +171,12 @@ explode(const char *flags)
 		if (!ch_isalpha(*f))
 			break;
 
-	if (*f)
+	if (*f != '\0')
 		return bmake_strdup(flags);
 
 	len = strlen(flags);
 	st = nf = bmake_malloc(len * 3 + 1);
-	while (*flags) {
+	while (*flags != '\0') {
 		*nf++ = '-';
 		*nf++ = *flags++;
 		*nf++ = ' ';
@@ -1469,6 +1469,10 @@ main_Init(int argc, char **argv)
 		Var_Set(".MAKE.PID", tmp, VAR_GLOBAL);
 		snprintf(tmp, sizeof tmp, "%u", getppid());
 		Var_Set(".MAKE.PPID", tmp, VAR_GLOBAL);
+		snprintf(tmp, sizeof tmp, "%u", getuid());
+		Var_Set(".MAKE.UID", tmp, VAR_GLOBAL);
+		snprintf(tmp, sizeof tmp, "%u", getgid());
+		Var_Set(".MAKE.GID", tmp, VAR_GLOBAL);
 	}
 	if (makelevel > 0) {
 		char pn[1024];
@@ -1848,8 +1852,7 @@ Cmd_Exec(const char *cmd, const char **errfmt)
 		if (bytes_read == -1)
 			savederr = errno;
 
-		(void)close(
-		    fds[0]);	/* Close the input side of the pipe. */
+		(void)close(fds[0]);	/* Close the input side of the pipe. */
 
 		/* Wait for the process to exit. */
 		while ((pid = waitpid(cpid, &status, 0)) != cpid && pid >= 0)
@@ -2241,11 +2244,10 @@ mkTempFile(const char *pattern, char **out_fname)
 	if ((fd = mkstemp(tfile)) < 0)
 		Punt("Could not create temporary file %s: %s", tfile,
 		    strerror(errno));
-	if (out_fname) {
+	if (out_fname != NULL) {
 		*out_fname = bmake_strdup(tfile);
 	} else {
-		unlink(
-		    tfile);	/* we just want the descriptor */
+		unlink(tfile);	/* we just want the descriptor */
 	}
 	return fd;
 }

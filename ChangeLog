@@ -1,8 +1,36 @@
+2020-11-24  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20201124
+	Merge with NetBSD make, pick up
+	o .MAKE.{UID,GID} represent uid and gid running make.
+	o fix error handling for .BEGIN and .END dependency in -k mode
+	o fix missing "Stop." after failed .END node in -k mode
+	o use properly typed comparisons in boolean contexts
+	o replace a few HashTable_CreateEntry with HashTable_Set
+	o add HashSet type
+	o compat.c: split Compat_Make into smaller functions
+	extract DebugFailedTarget from Compat_RunCommand
+	o dir.c: refactor Dir_UpdateMTime
+	migrate CachedDir.files from HashTable to HashSet
+	o make.c: add high-level API for GNode.made
+
+2020-11-22  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20201122
+	Merge with NetBSD make, pick up
+	o rename GNode.context to vars
+	o suff.c: cleanup and refactor
+	rename some functions and vars to better reflect usage
+	add high-level API for CandidateSearcher
+	o targ.c: add more debug logging for suffix handling
+	o more unit tests
+	o add debug logging for setting and resetting the main target
+
 2020-11-17  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20201117
 	Merge with NetBSD make, pick up
-	o fix some unit-tests when dash is .SHELL
+	o fix some unit-tests when .SHELL is dash
 	o rename Targ_NewGN to GNode_New
 	o make some GNode functions const
 	o main.c: call Targ_Init before Var_Init

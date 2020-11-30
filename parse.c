@@ -1,4 +1,4 @@
-/*	$NetBSD: parse.c,v 1.443 2020/11/16 21:39:22 rillig Exp $	*/
+/*	$NetBSD: parse.c,v 1.451 2020/11/23 23:41:11 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -124,7 +124,7 @@
 #include "pathnames.h"
 
 /*	"@(#)parse.c	8.3 (Berkeley) 3/19/94"	*/
-MAKE_RCSID("$NetBSD: parse.c,v 1.443 2020/11/16 21:39:22 rillig Exp $");
+MAKE_RCSID("$NetBSD: parse.c,v 1.451 2020/11/23 23:41:11 rillig Exp $");
 
 /* types and constants */
 
@@ -919,9 +919,10 @@ ParseDoSrcMain(const char *src)
      * the sources of said target to the list of things to create.
      *
      * Note that this will only be invoked if the user didn't specify a
-     * target on the command line. This is to allow .ifmake to succeed.
+     * target on the command line and the .MAIN occurs for the first time.
      *
-     * XXX: Double-check all of the above comment.
+     * See ParseDoDependencyTargetSpecial, branch SP_MAIN.
+     * See unit-tests/cond-func-make-main.mk.
      */
     Lst_Append(opts.create, bmake_strdup(src));
     /*
@@ -1023,6 +1024,7 @@ FindMainTarget(void)
     for (ln = targets->first; ln != NULL; ln = ln->next) {
 	GNode *gn = ln->datum;
 	if (!(gn->type & OP_NOTARGET)) {
+	    DEBUG1(MAKE, "Setting main node to \"%s\"\n", gn->name);
 	    mainNode = gn;
 	    Targ_SetMain(gn);
 	    return;
@@ -1059,9 +1061,9 @@ ParseErrorNoDependency(const char *lstart)
 }
 
 static void
-ParseDependencyTargetWord(/*const*/ char **pp, const char *lstart)
+ParseDependencyTargetWord(const char **pp, const char *lstart)
 {
-    /*const*/ char *cp = *pp;
+    const char *cp = *pp;
 
     while (*cp != '\0') {
 	if ((ch_isspace(*cp) || *cp == '!' || *cp == ':' || *cp == '(') &&
@@ -1437,8 +1439,9 @@ ParseDoDependencyTargets(char **inout_cp,
 			 StringList *curTargs)
 {
     char *cp = *inout_cp;
-    char *line = *inout_line;
+    char *tgt = *inout_line;
     char savec;
+    const char *p;
 
     for (;;) {
 	/*
@@ -1447,8 +1450,10 @@ ParseDoDependencyTargets(char **inout_cp,
 	 */
 
 	/* Find the end of the next word. */
-	cp = line;
-	ParseDependencyTargetWord(&cp, lstart);
+	cp = tgt;
+	p = cp;
+	ParseDependencyTargetWord(&p, lstart);
+	cp += p - cp;
 
 	/*
 	 * If the word is followed by a left parenthesis, it's the
@@ -1465,18 +1470,18 @@ ParseDoDependencyTargets(char **inout_cp,
 	     * went well and FALSE if there was an error in the
 	     * specification. On error, line should remain untouched.
 	     */
-	    if (!Arch_ParseArchive(&line, targets, VAR_CMDLINE)) {
+	    if (!Arch_ParseArchive(&tgt, targets, VAR_CMDLINE)) {
 		Parse_Error(PARSE_FATAL,
-			    "Error in archive specification: \"%s\"", line);
+			    "Error in archive specification: \"%s\"",
+			    tgt);
 		return FALSE;
-	    } else {
-		/* Done with this word; on to the next. */
-		cp = line;
-		continue;
 	    }
+
+	    cp = tgt;
+	    continue;
 	}
 
-	if (!*cp) {
+	if (*cp == '\0') {
 	    ParseErrorNoDependency(lstart);
 	    return FALSE;
 	}
@@ -1485,7 +1490,7 @@ ParseDoDependencyTargets(char **inout_cp,
 	savec = *cp;
 	*cp = '\0';
 
-	if (!ParseDoDependencyTarget(line, inout_specType, inout_tOp,
+	if (!ParseDoDependencyTarget(tgt, inout_specType, inout_tOp,
 				     inout_paths))
 	    return FALSE;
 
@@ -1493,10 +1498,10 @@ ParseDoDependencyTargets(char **inout_cp,
 	 * Have word in line. Get or create its node and stick it at
 	 * the end of the targets list
 	 */
-	if (*inout_specType == SP_NOT && *line != '\0')
-	    ParseDoDependencyTargetMundane(line, curTargs);
-	else if (*inout_specType == SP_PATH && *line != '.' && *line != '\0')
-	    Parse_Error(PARSE_WARNING, "Extra target (%s) ignored", line);
+	if (*inout_specType == SP_NOT && *tgt != '\0')
+	    ParseDoDependencyTargetMundane(tgt, curTargs);
+	else if (*inout_specType == SP_PATH && *tgt != '.' && *tgt != '\0')
+	    Parse_Error(PARSE_WARNING, "Extra target (%s) ignored", tgt);
 
 	/* Don't need the inserted null terminator any more. */
 	*cp = savec;
@@ -1510,15 +1515,15 @@ ParseDoDependencyTargets(char **inout_cp,
 	else
 	    pp_skip_whitespace(&cp);
 
-	line = cp;
-	if (*line == '\0')
+	tgt = cp;
+	if (*tgt == '\0')
 	    break;
-	if ((*line == '!' || *line == ':') && !ParseIsEscaped(lstart, line))
+	if ((*tgt == '!' || *tgt == ':') && !ParseIsEscaped(lstart, tgt))
 	    break;
     }
 
     *inout_cp = cp;
-    *inout_line = line;
+    *inout_line = tgt;
     return TRUE;
 }
 
@@ -1528,8 +1533,8 @@ ParseDoDependencySourcesSpecial(char *start, char *end,
 {
     char savec;
 
-    while (*start) {
-	while (*end && !ch_isspace(*end))
+    while (*start != '\0') {
+	while (*end != '\0' && !ch_isspace(*end))
 	    end++;
 	savec = *end;
 	*end = '\0';
@@ -1552,7 +1557,7 @@ ParseDoDependencySourcesMundane(char *start, char *end,
 	 * specifications (i.e. things with left parentheses in them)
 	 * and handle them accordingly.
 	 */
-	for (; *end && !ch_isspace(*end); end++) {
+	for (; *end != '\0' && !ch_isspace(*end); end++) {
 	    if (*end == '(' && end > start && end[-1] != '$') {
 		/*
 		 * Only stop for a left parenthesis if it isn't at the
@@ -1579,7 +1584,7 @@ ParseDoDependencySourcesMundane(char *start, char *end,
 	    Lst_Free(sources);
 	    end = start;
 	} else {
-	    if (*end) {
+	    if (*end != '\0') {
 		*end = '\0';
 		end++;
 	    }
@@ -1717,7 +1722,7 @@ ParseDoDependency(char *line)
 	specType == SP_NULL || specType == SP_OBJDIR)
     {
 	ParseDoDependencySourcesSpecial(line, cp, specType, paths);
-	if (paths) {
+	if (paths != NULL) {
 	    Lst_Free(paths);
 	    paths = NULL;
 	}
@@ -1942,7 +1947,7 @@ VarAssign_EvalShell(const char *name, const char *uvalue, GNode *ctxt,
     Var_Set(name, cmdOut, ctxt);
     *out_avalue = *out_avalue_freeIt = cmdOut;
 
-    if (errfmt)
+    if (errfmt != NULL)
 	Parse_Error(PARSE_WARNING, errfmt, cmd);
 
     free(cmd_freeIt);
@@ -2492,7 +2497,7 @@ ParseTraditionalInclude(char *line)
 
     for (file = all_files; !done; file = cp + 1) {
 	/* Skip to end of line or next whitespace */
-	for (cp = file; *cp && !ch_isspace(*cp); cp++)
+	for (cp = file; *cp != '\0' && !ch_isspace(*cp); cp++)
 	    continue;
 
 	if (*cp != '\0')
@@ -2800,7 +2805,7 @@ ParseReadLine(void)
 	    continue;
 	case COND_PARSE:
 	    continue;
-	case COND_INVALID:    /* Not a conditional line */
+	case COND_INVALID:	/* Not a conditional line */
 	    /* Check for .for loops */
 	    rval = For_Eval(line);
 	    if (rval == 0)

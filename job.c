@@ -1,4 +1,4 @@
-/*	$NetBSD: job.c,v 1.326 2020/11/16 18:28:27 rillig Exp $	*/
+/*	$NetBSD: job.c,v 1.329 2020/11/24 18:17:45 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990 The Regents of the University of California.
@@ -156,7 +156,7 @@
 #include "trace.h"
 
 /*	"@(#)job.c	8.2 (Berkeley) 3/19/94"	*/
-MAKE_RCSID("$NetBSD: job.c,v 1.326 2020/11/16 18:28:27 rillig Exp $");
+MAKE_RCSID("$NetBSD: job.c,v 1.329 2020/11/24 18:17:45 rillig Exp $");
 
 /* A shell defines how the commands are run.  All commands for a target are
  * written into a single file, which is then given to the shell to execute
@@ -1123,7 +1123,7 @@ TouchRegular(GNode *gn)
 	(void)fprintf(stderr, "*** couldn't touch %s: %s\n",
 		      file, strerror(errno));
 	(void)fflush(stderr);
-	return;                /* XXX: What about propagating the error? */
+	return;			/* XXX: What about propagating the error? */
     }
 
     /* Last resort: update the file's time stamps in the traditional way.
@@ -1853,11 +1853,12 @@ JobRun(GNode *targ)
     (void)Make_Run(lst);
     Lst_Destroy(lst, NULL);
     JobStart(targ, JOB_SPECIAL);
-    while (jobTokensRunning) {
+    while (jobTokensRunning != 0) {
 	Job_CatchOutput();
     }
 #else
     Compat_Make(targ, targ);
+    /* XXX: Replace with GNode_IsError(gn) */
     if (targ->made == ERROR) {
 	PrintOnError(targ, "\n\nStop.");
 	exit(1);
@@ -2049,15 +2050,15 @@ Shell_Init(void)
 	    free(shellErrFlag);
 	    shellErrFlag = NULL;
 	}
-	if (!shellErrFlag) {
+	if (shellErrFlag == NULL) {
 	    size_t n = strlen(commandShell->exit) + 2;
 
 	    shellErrFlag = bmake_malloc(n);
-	    if (shellErrFlag) {
+	    if (shellErrFlag != NULL) {
 		snprintf(shellErrFlag, n, "-%s", commandShell->exit);
 	    }
 	}
-    } else if (shellErrFlag) {
+    } else if (shellErrFlag != NULL) {
 	free(shellErrFlag);
 	shellErrFlag = NULL;
     }
@@ -2074,7 +2075,7 @@ Shell_GetNewline(void)
 void
 Job_SetPrefix(void)
 {
-    if (targPrefix) {
+    if (targPrefix != NULL) {
 	free(targPrefix);
     } else if (!Var_Exists(MAKE_JOB_PREFIX, VAR_GLOBAL)) {
 	Var_Set(MAKE_JOB_PREFIX, "---", VAR_GLOBAL);
@@ -2346,7 +2347,7 @@ Job_ParseShell(char *line)
 	    }
 	    commandShell = sh;
 	    shellName = newShell.name;
-	    if (shellPath) {
+	    if (shellPath != NULL) {
 		/* Shell_Init has already been called!  Do it again. */
 		free(UNCONST(shellPath));
 		shellPath = NULL;
@@ -2467,7 +2468,7 @@ Job_Finish(void)
 {
     GNode *endNode = Targ_GetEndNode();
     if (!Lst_IsEmpty(endNode->commands) || !Lst_IsEmpty(endNode->children)) {
-	if (errors) {
+	if (errors != 0) {
 	    Error("Errors reported so .END ignored");
 	} else {
 	    JobRun(endNode);
@@ -2510,7 +2511,7 @@ Job_AbortAll(void)
 
     aborting = ABORT_ERROR;
 
-    if (jobTokensRunning) {
+    if (jobTokensRunning != 0) {
 	for (job = job_table; job < job_table_end; job++) {
 	    if (job->status != JOB_ST_RUNNING)
 		continue;
@@ -2751,10 +2752,11 @@ Job_RunTarget(const char *target, const char *fname) {
     if (gn == NULL)
 	return FALSE;
 
-    if (fname)
+    if (fname != NULL)
 	Var_Set(ALLSRC, fname, gn);
 
     JobRun(gn);
+    /* XXX: Replace with GNode_IsError(gn) */
     if (gn->made == ERROR) {
 	PrintOnError(gn, "\n\nStop.");
 	exit(1);

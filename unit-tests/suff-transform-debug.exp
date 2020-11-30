@@ -1,20 +1,11 @@
 #*** Input graph:
-# all, made UNMADE, type OP_DEPENDS|OP_HAS_COMMANDS, flags none
-# made-target, made UNMADE, type OP_DEPENDS, flags none
-# made-target-no-sources, made UNMADE, type OP_DEPENDS, flags none
-# made-source, made UNMADE, type OP_DEPENDS, flags none
-# unmade-target, made UNMADE, type OP_DEPENDS, flags none
-# unmade-sources, made UNMADE, type none, flags none
-# unmade-silent-source, made UNMADE, type OP_SILENT, flags none
-# unmade-target-no-sources, made UNMADE, type OP_DEPENDS, flags none
+# all, made UNMADE, type OP_DEPENDS, flags none
 
 
 #
 #   Files that are only sources:
-#	unmade-sources [unmade-sources]
-#	unmade-silent-source [unmade-silent-source] .SILENT
 #*** Global Variables:
-.ALLTARGETS      =  all made-target made-target-no-sources made-source unmade-target unmade-sources unmade-silent-source unmade-target-no-sources
+.ALLTARGETS      =  all
 .CURDIR          = <curdir>
 .INCLUDES        = 
 .LIBS            = 
@@ -43,5 +34,23 @@ MFLAGS           =   -r -k -d g1
 .MAKE.LEVEL.ENV  = MAKELEVEL
 
 #*** Suffixes:
+# ".a" (num 1, ref 2)
+#	To: 
+#	From: .cpp 
+#	Search Path: 
+# ".c" (num 2, ref 2)
+#	To: .cpp 
+#	From: 
+#	Search Path: 
+# ".cpp" (num 3, ref 3)
+#	To: .a 
+#	From: .c 
+#	Search Path: 
 #*** Transformations:
+.c.cpp          :
+	: Making ${.TARGET} from impsrc ${.IMPSRC} allsrc ${.ALLSRC}.
+
+.cpp.a          :
+	: Making ${.TARGET} from impsrc ${.IMPSRC} allsrc ${.ALLSRC}.
+
 exit status 0

@@ -1,5 +1,5 @@
 # RCSid:
-#       $Id: dirdeps-targets.mk,v 1.22 2020/08/15 18:00:11 sjg Exp $
+#       $Id: dirdeps-targets.mk,v 1.23 2020/11/21 02:34:37 sjg Exp $
 #
 #       @(#) Copyright (c) 2019-2020 Simon J. Gerraty
 #
@@ -135,7 +135,7 @@ DIRDEPS := ${DIRDEPS:O:u}
 # if we got DIRDEPS get to work
 .if !empty(DIRDEPS)
 DIRDEPS.dirs := ${DIRDEPS:S,^,${SRCTOP}/,:@d@${exists($d):?$d:${d:R}}@}
-# some targets what to tweak options we might want to process now
+# some targets want to tweak options we might want to process now
 .for m in ${DIRDEPS.dirs:S,$,/Makefile.dirdeps.options,}
 .-include <$m>
 .endfor

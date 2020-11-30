@@ -671,6 +671,10 @@ BMAKE(1)                FreeBSD General Commands Manual               BMAKE(1)
                      patability with other makes.  If set to false, `$$'
                      becomes `$' per normal evaluation rules.
 
+     [4m.MAKE.UID[24m       The user-id running [1mbmake[22m.
+
+     [4m.MAKE.GID[24m       The group-id running [1mbmake[22m.
+
      [4mMAKE_PRINT_VAR_ON_ERROR[0m
                      When [1mbmake [22mstops due to an error, it sets `[4m.ERROR_TARGET[24m'
                      to the name of the target that failed, `[4m.ERROR_CMD[24m' to
@@ -1577,4 +1581,4 @@ BMAKE(1)                FreeBSD General Commands Manual               BMAKE(1)
 
      There is no way of escaping a space character in a filename.
 
-FreeBSD 11.3                   November 14, 2020                  FreeBSD 11.3
+FreeBSD 11.3                   November 24, 2020                  FreeBSD 11.3

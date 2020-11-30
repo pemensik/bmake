@@ -1,3 +1,19 @@
+2020-11-26  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20201126
+
+	* own.mk: use .MAKE.{UID,GID} if available.
+
+	* init.mk: suppress _SKIP_BUILD warning if doing -V
+
+2020-11-20  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20201120
+
+	* init.mk: rename LEVEL0_TARGETS to DIRDEPS_BUILD_LEVEL0_TARGETS
+
+	* dirdeps-targets.mk: fix typo in comment
+
 2020-11-06  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* install-mk (MK_VERSION): 20201106
