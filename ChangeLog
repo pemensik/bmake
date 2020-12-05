@@ -1,3 +1,33 @@
+2020-11-30  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20201130
+	Merge with NetBSD make, pick up
+	o add unit tests for META MODE
+	o reduce memory allocation for dirSearchPath, GNode.parents,
+	GNode.children, OpenDirs
+	o reduce pointer indirection for GNode.cohorts and
+	GNode.implicitParents
+	o remove pointer indirection from GNode.commands
+	o inline Lst_ForEachUntil in meta mode
+	o dir.c: fix memory leak for lstat cache in -DCLEANUP mode
+	clean up memory management for CachedDirs
+	fix the reference count of dotLast going negative
+	add debug logging for OpenDirs_Done
+	extract CacheNewDir from Dir_AddDir
+	add debug logging for reference counting of CachedDir
+	rename some Dir functions to SearchPath
+	o job.c: rename some global variables
+	o main.c: reduce memory allocation in ReadBuiltinRules
+	reduce memory allocation in CmdOpts.create, CmdOpts.variables,
+	CmdOpts.makefiles
+	Add .MAKE.UID and .MAKE.GID
+	o make.c: reduce memory allocation for/in toBeMade,
+	Make_ProcessWait, Make_ExpandUse
+	o meta.c: reduce memory allocation in meta_oodate
+	o parse.c: reduce memory allocations for parsing dependencies and
+	targets
+	o suff.c: reduce memory allocation in suffix handling
+
 2020-11-24  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20201124

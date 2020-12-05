@@ -1,4 +1,4 @@
-/*	$NetBSD: parse.c,v 1.451 2020/11/23 23:41:11 rillig Exp $	*/
+/*	$NetBSD: parse.c,v 1.463 2020/11/29 01:40:26 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -124,7 +124,7 @@
 #include "pathnames.h"
 
 /*	"@(#)parse.c	8.3 (Berkeley) 3/19/94"	*/
-MAKE_RCSID("$NetBSD: parse.c,v 1.451 2020/11/23 23:41:11 rillig Exp $");
+MAKE_RCSID("$NetBSD: parse.c,v 1.463 2020/11/29 01:40:26 rillig Exp $");
 
 /* types and constants */
 
@@ -215,7 +215,7 @@ static GNodeList *targets;
  * with duplicates.  Kept in a separate list since the commands from .USE or
  * .USEBEFORE nodes are shared with other GNodes, thereby giving up the
  * easily understandable ownership over the allocated strings. */
-static StringList *targCmds;
+static StringList targCmds = LST_INIT;
 #endif
 
 /*
@@ -611,15 +611,15 @@ ParseFindKeyword(const char *str)
     int end = sizeof parseKeywords / sizeof parseKeywords[0] - 1;
 
     do {
-	int cur = start + (end - start) / 2;
-	int diff = strcmp(str, parseKeywords[cur].name);
+	int curr = start + (end - start) / 2;
+	int diff = strcmp(str, parseKeywords[curr].name);
 
 	if (diff == 0)
-	    return cur;
+	    return curr;
 	if (diff < 0)
-	    end = cur - 1;
+	    end = curr - 1;
 	else
-	    start = cur + 1;
+	    start = curr + 1;
     } while (start <= end);
 
     return -1;
@@ -744,8 +744,8 @@ static Boolean
 ParseMessage(const char *directive)
 {
     const char *p = directive;
-    int mtype = *p == 'i' ? PARSE_INFO :
-		*p == 'w' ? PARSE_WARNING : PARSE_FATAL;
+    ParseErrorLevel mtype = *p == 'i' ? PARSE_INFO :
+			    *p == 'w' ? PARSE_WARNING : PARSE_FATAL;
     char *arg;
 
     while (ch_isalpha(*p))
@@ -775,15 +775,15 @@ ParseMessage(const char *directive)
 static void
 LinkSource(GNode *pgn, GNode *cgn, Boolean isSpecial)
 {
-    if ((pgn->type & OP_DOUBLEDEP) && !Lst_IsEmpty(pgn->cohorts))
-	pgn = pgn->cohorts->last->datum;
+    if ((pgn->type & OP_DOUBLEDEP) && !Lst_IsEmpty(&pgn->cohorts))
+	pgn = pgn->cohorts.last->datum;
 
-    Lst_Append(pgn->children, cgn);
+    Lst_Append(&pgn->children, cgn);
     pgn->unmade++;
 
     /* Special targets like .END don't need any children. */
     if (!isSpecial)
-	Lst_Append(cgn->parents, pgn);
+	Lst_Append(&cgn->parents, pgn);
 
     if (DEBUG(PARSE)) {
 	debug_printf("# %s: added child %s - %s\n",
@@ -847,7 +847,7 @@ TryApplyDependencyOperator(GNode *gn, GNodeType op)
 	 * traversals will no longer see this node anyway. -mycroft)
 	 */
 	cohort->type = op | OP_INVISIBLE;
-	Lst_Append(gn->cohorts, cohort);
+	Lst_Append(&gn->cohorts, cohort);
 	cohort->centurion = gn;
 	gn->unmade_cohorts++;
 	snprintf(cohort->cohort_num, sizeof cohort->cohort_num, "#%d",
@@ -924,7 +924,7 @@ ParseDoSrcMain(const char *src)
      * See ParseDoDependencyTargetSpecial, branch SP_MAIN.
      * See unit-tests/cond-func-make-main.mk.
      */
-    Lst_Append(opts.create, bmake_strdup(src));
+    Lst_Append(&opts.create, bmake_strdup(src));
     /*
      * Add the name to the .TARGETS variable as well, so the user can
      * employ that, if desired.
@@ -944,8 +944,8 @@ ParseDoSrcOrder(const char *src)
     if (doing_depend)
 	ParseMark(gn);
     if (order_pred != NULL) {
-	Lst_Append(order_pred->order_succ, gn);
-	Lst_Append(gn->order_pred, order_pred);
+	Lst_Append(&order_pred->order_succ, gn);
+	Lst_Append(&gn->order_pred, order_pred);
 	if (DEBUG(PARSE)) {
 	    debug_printf("# %s: added Order dependency %s - %s\n",
 			 __func__, order_pred->name, gn->name);
@@ -1104,11 +1104,11 @@ ParseDoDependencyTargetSpecial(ParseSpecial *inout_specType,
     case SP_PATH:
 	if (*inout_paths == NULL)
 	    *inout_paths = Lst_New();
-	Lst_Append(*inout_paths, dirSearchPath);
+	Lst_Append(*inout_paths, &dirSearchPath);
 	break;
     case SP_MAIN:
 	/* Allow targets from the command line to override the .MAIN node. */
-	if (!Lst_IsEmpty(opts.create))
+	if (!Lst_IsEmpty(&opts.create))
 	    *inout_specType = SP_NOT;
 	break;
     case SP_BEGIN:
@@ -1222,11 +1222,11 @@ ParseDoDependencyTargetMundane(char *line, StringList *curTargs)
 	 * use Dir_Destroy in the destruction of the path as the
 	 * Dir module could have added a directory to the path...
 	 */
-	SearchPath *emptyPath = Lst_New();
+	SearchPath *emptyPath = SearchPath_New();
 
 	Dir_Expand(line, emptyPath, curTargs);
 
-	Lst_Destroy(emptyPath, Dir_Destroy);
+	SearchPath_Free(emptyPath);
     } else {
 	/*
 	 * No wildcards, but we want to avoid code duplication,
@@ -1329,7 +1329,7 @@ ClearPaths(SearchPathList *paths)
     if (paths != NULL) {
 	SearchPathListNode *ln;
 	for (ln = paths->first; ln != NULL; ln = ln->next)
-	    Dir_ClearPath(ln->datum);
+	    SearchPath_Clear(ln->datum);
     }
 
     Dir_SetPATH();
@@ -1570,18 +1570,18 @@ ParseDoDependencySourcesMundane(char *start, char *end,
 	}
 
 	if (*end == '(') {
-	    GNodeList *sources = Lst_New();
-	    if (!Arch_ParseArchive(&start, sources, VAR_CMDLINE)) {
+	    GNodeList sources = LST_INIT;
+	    if (!Arch_ParseArchive(&start, &sources, VAR_CMDLINE)) {
 		Parse_Error(PARSE_FATAL,
 			    "Error in source archive spec \"%s\"", start);
 		return FALSE;
 	    }
 
-	    while (!Lst_IsEmpty(sources)) {
-		GNode *gn = Lst_Dequeue(sources);
+	    while (!Lst_IsEmpty(&sources)) {
+		GNode *gn = Lst_Dequeue(&sources);
 		ParseDoSrc(tOp, gn->name, specType);
 	    }
-	    Lst_Free(sources);
+	    Lst_Done(&sources);
 	    end = start;
 	} else {
 	    if (*end != '\0') {
@@ -1631,8 +1631,8 @@ ParseDoDependency(char *line)
     SearchPathList *paths;	/* search paths to alter when parsing
 				 * a list of .PATH targets */
     GNodeType tOp;		/* operator from special target */
-    StringList *curTargs;	/* target names to be found and added
-				 * to the targets list */
+    /* target names to be found and added to the targets list */
+    StringList curTargs = LST_INIT;
     char *lstart = line;
 
     /*
@@ -1647,19 +1647,17 @@ ParseDoDependency(char *line)
 
     paths = NULL;
 
-    curTargs = Lst_New();
-
     /*
      * First, grind through the targets.
      */
     if (!ParseDoDependencyTargets(&cp, &line, lstart, &specType, &tOp, &paths,
-				  curTargs))
+				  &curTargs))
 	goto out;
 
     /* Don't need the list of target names anymore.
      * The targets themselves are now in the global variable 'targets'. */
-    Lst_Free(curTargs);
-    curTargs = NULL;
+    Lst_Done(&curTargs);
+    Lst_Init(&curTargs);
 
     if (!Lst_IsEmpty(targets))
 	ParseDoDependencyCheckSpec(specType);
@@ -1739,8 +1737,7 @@ ParseDoDependency(char *line)
 out:
     if (paths != NULL)
 	Lst_Free(paths);
-    if (curTargs != NULL)
-	Lst_Free(curTargs);
+    Lst_Done(&curTargs);
 }
 
 typedef struct VarAssignParsed {
@@ -2072,12 +2069,12 @@ static void
 ParseAddCmd(GNode *gn, char *cmd)
 {
     /* Add to last (ie current) cohort for :: targets */
-    if ((gn->type & OP_DOUBLEDEP) && gn->cohorts->last != NULL)
-	gn = gn->cohorts->last->datum;
+    if ((gn->type & OP_DOUBLEDEP) && gn->cohorts.last != NULL)
+	gn = gn->cohorts.last->datum;
 
     /* if target already supplied, ignore commands */
     if (!(gn->type & OP_HAS_COMMANDS)) {
-	Lst_Append(gn->commands, cmd);
+	Lst_Append(&gn->commands, cmd);
 	if (MaybeSubMake(cmd))
 	    gn->type |= OP_SUBMAKE;
 	ParseMark(gn);
@@ -2152,7 +2149,7 @@ Parse_include_file(char *file, Boolean isSystem, Boolean depinc, Boolean silent)
 	    newName = str_concat3(incdir, "/", file + i);
 	    fullname = Dir_FindFile(newName, parseIncPath);
 	    if (fullname == NULL)
-		fullname = Dir_FindFile(newName, dirSearchPath);
+		fullname = Dir_FindFile(newName, &dirSearchPath);
 	    free(newName);
 	}
 	free(incdir);
@@ -2175,7 +2172,7 @@ Parse_include_file(char *file, Boolean isSystem, Boolean depinc, Boolean silent)
 	    if (fullname == NULL) {
 		fullname = Dir_FindFile(file, parseIncPath);
 		if (fullname == NULL)
-		    fullname = Dir_FindFile(file, dirSearchPath);
+		    fullname = Dir_FindFile(file, &dirSearchPath);
 	    }
 	}
     }
@@ -2849,7 +2846,7 @@ FinishDependencyGroup(void)
 
 	/* Mark the target as already having commands if it does, to
 	 * keep from having shell commands on multiple dependency lines. */
-	if (!Lst_IsEmpty(gn->commands))
+	if (!Lst_IsEmpty(&gn->commands))
 	    gn->type |= OP_HAS_COMMANDS;
     }
 
@@ -2879,7 +2876,7 @@ ParseLine_ShellCommand(const char *p)
 	    ParseAddCmd(gn, cmd);
 	}
 #ifdef CLEANUP
-	Lst_Append(targCmds, cmd);
+	Lst_Append(&targCmds, cmd);
 #endif
     }
 }
@@ -3128,13 +3125,10 @@ void
 Parse_Init(void)
 {
     mainNode = NULL;
-    parseIncPath = Lst_New();
-    sysIncPath = Lst_New();
-    defSysIncPath = Lst_New();
+    parseIncPath = SearchPath_New();
+    sysIncPath = SearchPath_New();
+    defSysIncPath = SearchPath_New();
     Vector_Init(&includes, sizeof(IFile));
-#ifdef CLEANUP
-    targCmds = Lst_New();
-#endif
 }
 
 /* Clean up the parsing module. */
@@ -3142,11 +3136,11 @@ void
 Parse_End(void)
 {
 #ifdef CLEANUP
-    Lst_Destroy(targCmds, free);
+    Lst_DoneCall(&targCmds, free);
     assert(targets == NULL);
-    Lst_Destroy(defSysIncPath, Dir_Destroy);
-    Lst_Destroy(sysIncPath, Dir_Destroy);
-    Lst_Destroy(parseIncPath, Dir_Destroy);
+    SearchPath_Free(defSysIncPath);
+    SearchPath_Free(sysIncPath);
+    SearchPath_Free(parseIncPath);
     assert(includes.len == 0);
     Vector_Done(&includes);
 #endif
@@ -3157,25 +3151,19 @@ Parse_End(void)
  * Return a list containing the single main target to create.
  * If no such target exists, we Punt with an obnoxious error message.
  */
-GNodeList *
-Parse_MainName(void)
+void
+Parse_MainName(GNodeList *mainList)
 {
-    GNodeList *mainList;
-
-    mainList = Lst_New();
-
     if (mainNode == NULL)
 	Punt("no target to make.");
 
     if (mainNode->type & OP_DOUBLEDEP) {
 	Lst_Append(mainList, mainNode);
-	Lst_AppendAll(mainList, mainNode->cohorts);
+	Lst_AppendAll(mainList, &mainNode->cohorts);
     } else
 	Lst_Append(mainList, mainNode);
 
     Var_Append(".TARGETS", mainNode->name, VAR_GLOBAL);
-
-    return mainList;
 }
 
 int

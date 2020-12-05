@@ -379,6 +379,8 @@ unit-tests/lint.exp
 unit-tests/lint.mk
 unit-tests/make-exported.exp
 unit-tests/make-exported.mk
+unit-tests/meta-cmd-cmp.exp
+unit-tests/meta-cmd-cmp.mk
 unit-tests/moderrs.exp
 unit-tests/moderrs.mk
 unit-tests/modmatch.exp
