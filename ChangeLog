@@ -1,3 +1,80 @@
+2020-12-12  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* avoid %zu
+
+	* lst.c: avoid anonymous union
+
+	* VERSION (_MAKE_VERSION): 20201212
+	Merge with NetBSD make, pick up
+	o more unit tests
+	o inline Targ_Ignore and Targ_Silent
+	o split JobFlags into separate fields
+	o remove const from function parameters (left overs from refactoring)
+	o eliminate boolean argument of Var_Export
+	o make API of Buf_Init simpler
+	o rename ParseRunOptions to ParseCommandFlags
+	o replace *line with line[0]
+	o compat.c: fix wrong exit status for multiple failed main targets
+	refactor Compat_Run to show the error condition more clearly
+	don't make .END if the main targets already failed (-k mode)
+	fix exit status in -k mode if a dependency fails
+	o for.c: clean up Buf_AddEscaped in .for loops
+	o job.c: extract ShellWriter_ErrOn from JobPrintCommand
+	make Job_Touch simpler
+	refactor JobFinish
+	rename Shell.exitFlag to errFlag
+	move Job.xtraced to ShellWriter
+	make printing of shell commands independent from the job
+	rename shell flags in struct Shell
+	extract JobOpenTmpFile from JobStart
+	rename RunFlags to CommandFlags
+	split various Job.* into separate fields
+	rename commandShell to shell
+	extract InitShellNameAndPath from Shell_Init
+	replace signal handling macros with local functions
+	replace macro MESSAGE with local function
+	parse.c: error out on null bytes in makefiles
+	error out on misspelled directives
+	rename IFile.nextbuf to readMore
+	fix undefined behavior in ParseEOF
+	str.c: remove redundant call to strlen in Str_Words
+	var.c: error out on misspelled .unexport-env
+	error out on misspelled .export directives
+	extract ExportVars from Var_Export
+	extract ExportVarsExpand from Var_Export
+	eliminate boolean argument of Var_Export
+	fix undefined behavior when exporting ${:U }
+	rename Var_ExportVars to Var_ReexportVars
+	rename Var_Export1 to ExportVar
+
+2020-12-06  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20201206
+	Merge with NetBSD make, pick up
+	o more unit tests
+	o inline macros for debug logging
+	o use consistent variable names for list nodes
+	o define constants for enum zero-values
+	o dir.c: use fixed format for debug output of the directory cache
+	remove Dir_InitDir
+	o lst.c: inline Lst_Enqueue, Vector_Done
+	o meta.c: remove unused parameter from meta_needed
+	o parse.c: rename parse functions
+	o suff.c: extract ExpandChildrenRegular from ExpandChildren
+	o targ.c: don't concatenate identifiers in Targ_PrintType
+	o var.c: remove comment decoration
+	extract UnexportVars from Var_UnExport
+	extract GetVarnamesToUnexport from Var_UnExport
+	extract UnexportEnv from Var_UnExport
+	extract UnexportVar from Var_UnExport
+	move CleanEnv to UnexportVars
+	replace pointer comparisons with enum
+	add FStr to var.c to make memory handling simpler
+	use FStr in Var_UnExport
+	move type definitions in var.c to the top
+	extract FreeEnvVar from Var_Parse
+	extract ShuffleStrings from ApplyModifier_Order
+
 2020-11-30  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20201130

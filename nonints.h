@@ -1,4 +1,4 @@
-/*	$NetBSD: nonints.h,v 1.164 2020/11/29 00:04:22 rillig Exp $	*/
+/*	$NetBSD: nonints.h,v 1.170 2020/12/13 02:15:49 rillig Exp $	*/
 
 /*-
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -148,14 +148,14 @@ typedef struct VarAssign {
     const char *value;		/* unexpanded */
 } VarAssign;
 
-typedef char *(*NextBufProc)(void *, size_t *);
+typedef char *(*ReadMoreProc)(void *, size_t *);
 
 void Parse_Error(ParseErrorLevel, const char *, ...) MAKE_ATTR_PRINTFLIKE(2, 3);
 Boolean Parse_IsVar(const char *, VarAssign *out_var);
 void Parse_DoVar(VarAssign *, GNode *);
 void Parse_AddIncludeDir(const char *);
 void Parse_File(const char *, int);
-void Parse_SetInput(const char *, int, int, NextBufProc, void *);
+void Parse_SetInput(const char *, int, int, ReadMoreProc, void *);
 void Parse_MainName(GNodeList *);
 int Parse_GetFatals(void);
 
@@ -213,8 +213,6 @@ GNode *Targ_GetNode(const char *);
 GNode *Targ_NewInternalNode(const char *);
 GNode *Targ_GetEndNode(void);
 void Targ_FindList(GNodeList *, StringList *);
-Boolean Targ_Ignore(const GNode *);
-Boolean Targ_Silent(const GNode *);
 Boolean Targ_Precious(const GNode *);
 void Targ_SetMain(GNode *);
 void Targ_PrintCmds(GNode *);
@@ -321,6 +319,15 @@ typedef enum VarParseResult {
     VPR_UNKNOWN		= 0x0008
 } VarParseResult;
 
+typedef enum VarExportMode {
+	/* .export-env */
+	VEM_NORMAL,
+	/* .export: Initial export or update an already exported variable. */
+	VEM_PARENT,
+	/* .export-literal: Do not expand the variable value. */
+	VEM_LITERAL
+} VarExportMode;
+
 void Var_Delete(const char *, GNode *);
 void Var_Set(const char *, const char *, GNode *);
 void Var_SetWithFlags(const char *, const char *, GNode *, VarSetFlags);
@@ -333,9 +340,10 @@ VarParseResult Var_Parse(const char **, GNode *, VarEvalFlags,
 VarParseResult Var_Subst(const char *, GNode *, VarEvalFlags, char **);
 void Var_Stats(void);
 void Var_Dump(GNode *);
-void Var_ExportVars(void);
-void Var_Export(const char *, Boolean);
-void Var_UnExport(const char *);
+void Var_ReexportVars(void);
+void Var_Export(VarExportMode, const char *);
+void Var_ExportVars(const char *);
+void Var_UnExport(Boolean, const char *);
 
 /* util.c */
 typedef void (*SignalProc)(int);

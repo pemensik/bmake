@@ -1,3 +1,8 @@
+2020-12-11  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* dirdeps-targets.mk: allow for "." in DIRDEPS_TARGETS_DIRS
+	so that any directory can be treated as a target.
+
 2020-11-26  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* install-mk (MK_VERSION): 20201126

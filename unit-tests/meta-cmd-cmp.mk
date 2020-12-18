@@ -1,4 +1,4 @@
-# $NetBSD: meta-cmd-cmp.mk,v 1.1 2020/11/30 18:32:49 sjg Exp $
+# $NetBSD: meta-cmd-cmp.mk,v 1.2 2020/12/05 22:51:34 sjg Exp $
 #
 # Tests META_MODE command line comparison
 #

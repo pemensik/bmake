@@ -1,4 +1,4 @@
-/*	$NetBSD: cond.c,v 1.220 2020/11/29 01:40:26 rillig Exp $	*/
+/*	$NetBSD: cond.c,v 1.222 2020/12/12 00:33:25 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990 The Regents of the University of California.
@@ -94,7 +94,7 @@
 #include "dir.h"
 
 /*	"@(#)cond.c	8.2 (Berkeley) 1/2/94"	*/
-MAKE_RCSID("$NetBSD: cond.c,v 1.220 2020/11/29 01:40:26 rillig Exp $");
+MAKE_RCSID("$NetBSD: cond.c,v 1.222 2020/12/12 00:33:25 rillig Exp $");
 
 /*
  * The parsing of conditional expressions is based on this grammar:
@@ -800,7 +800,7 @@ CondParser_LeafToken(CondParser *par, Boolean doEval)
 	Token t;
 	char *arg = NULL;
 	size_t arglen;
-	const char *cp = par->p;
+	const char *cp;
 	const char *cp1;
 
 	if (CondParser_Func(par, doEval, &t))
@@ -1117,7 +1117,7 @@ Cond_EvalCondition(const char *cond, Boolean *out_value)
  *			or because the condition could not be evaluated
  */
 CondEvalResult
-Cond_EvalLine(const char *const line)
+Cond_EvalLine(const char *line)
 {
 	typedef enum IfState {
 

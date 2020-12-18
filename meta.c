@@ -1,4 +1,4 @@
-/*      $NetBSD: meta.c,v 1.156 2020/11/29 21:31:55 rillig Exp $ */
+/*      $NetBSD: meta.c,v 1.158 2020/12/10 20:49:11 rillig Exp $ */
 
 /*
  * Implement 'meta' mode.
@@ -415,7 +415,7 @@ printCMDs(GNode *gn, FILE *fp)
  * Do we need/want a .meta file ?
  */
 static Boolean
-meta_needed(GNode *gn, const char *dname, const char *tname,
+meta_needed(GNode *gn, const char *dname,
 	    char *objdir_realpath, Boolean verbose)
 {
     struct cached_stat cst;
@@ -489,7 +489,7 @@ meta_create(BuildMon *pbm, GNode *gn)
     tname = GNode_VarTarget(gn);
 
     /* if this succeeds objdir_realpath is realpath of dname */
-    if (!meta_needed(gn, dname, tname, objdir_realpath, TRUE))
+    if (!meta_needed(gn, dname, objdir_realpath, TRUE))
 	goto out;
     dname = objdir_realpath;
 
@@ -776,7 +776,7 @@ meta_job_event(Job *job)
 }
 
 void
-meta_job_error(Job *job, GNode *gn, int flags, int status)
+meta_job_error(Job *job, GNode *gn, Boolean ignerr, int status)
 {
     char cwd[MAXPATHLEN];
     BuildMon *pbm;
@@ -790,9 +790,7 @@ meta_job_error(Job *job, GNode *gn, int flags, int status)
     }
     if (pbm->mfp != NULL) {
 	fprintf(pbm->mfp, "\n*** Error code %d%s\n",
-		status,
-		(flags & JOB_IGNERR) ?
-		"(ignored)" : "");
+		status, ignerr ? "(ignored)" : "");
     }
     if (gn != NULL) {
 	Var_Set(".ERROR_TARGET", GNode_Path(gn), VAR_GLOBAL);
@@ -934,7 +932,8 @@ fgetLine(char **bufp, size_t *szp, int o, FILE *fp)
 		newsz = ROUNDUP((size_t)fs.st_size, BUFSIZ);
 	    if (newsz <= bufsz)
 		return x;		/* truncated */
-	    DEBUG2(META, "growing buffer %zu -> %zu\n", bufsz, newsz);
+	    DEBUG2(META, "growing buffer %u -> %u\n",
+		   (unsigned)bufsz, (unsigned)newsz);
 	    p = bmake_realloc(buf, newsz);
 	    *bufp = buf = p;
 	    *szp = bufsz = newsz;
@@ -1105,7 +1104,7 @@ meta_oodate(GNode *gn, Boolean oodate)
     tname = GNode_VarTarget(gn);
 
     /* if this succeeds fname3 is realpath of dname */
-    if (!meta_needed(gn, dname, tname, fname3, FALSE))
+    if (!meta_needed(gn, dname, fname3, FALSE))
 	goto oodate_out;
     dname = fname3;
 
