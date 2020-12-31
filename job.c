@@ -1,4 +1,4 @@
-/*	$NetBSD: job.c,v 1.386 2020/12/13 02:01:43 rillig Exp $	*/
+/*	$NetBSD: job.c,v 1.389 2020/12/20 21:07:32 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990 The Regents of the University of California.
@@ -156,7 +156,7 @@
 #include "trace.h"
 
 /*	"@(#)job.c	8.2 (Berkeley) 3/19/94"	*/
-MAKE_RCSID("$NetBSD: job.c,v 1.386 2020/12/13 02:01:43 rillig Exp $");
+MAKE_RCSID("$NetBSD: job.c,v 1.389 2020/12/20 21:07:32 rillig Exp $");
 
 /*
  * A shell defines how the commands are run.  All commands for a target are
@@ -532,7 +532,8 @@ JobDeleteTarget(GNode *gn)
  * Signal lock routines to get exclusive access. Currently used to
  * protect `jobs' and `stoppedJobs' list manipulations.
  */
-static void JobSigLock(sigset_t *omaskp)
+static void
+JobSigLock(sigset_t *omaskp)
 {
 	if (sigprocmask(SIG_BLOCK, &caught_signals, omaskp) != 0) {
 		Punt("JobSigLock: sigprocmask: %s", strerror(errno));
@@ -540,7 +541,8 @@ static void JobSigLock(sigset_t *omaskp)
 	}
 }
 
-static void JobSigUnlock(sigset_t *omaskp)
+static void
+JobSigUnlock(sigset_t *omaskp)
 {
 	(void)sigprocmask(SIG_SETMASK, omaskp, NULL);
 }
@@ -901,7 +903,7 @@ JobPrintSpecials(Job *job, ShellWriter *wr, const char *escCmd, Boolean run,
  * after all other targets have been made.
  */
 static void
-JobPrintCommand(Job *job, ShellWriter *wr, const char *ucmd)
+JobPrintCommand(Job *job, ShellWriter *wr, StringListNode *ln, const char *ucmd)
 {
 	Boolean run;
 
@@ -928,7 +930,7 @@ JobPrintCommand(Job *job, ShellWriter *wr, const char *ucmd)
 		 * We're not actually executing anything...
 		 * but this one needs to be - use compat mode just for it.
 		 */
-		Compat_RunCommand(ucmd, job->node);
+		Compat_RunCommand(ucmd, job->node, ln);
 		free(xcmdStart);
 		return;
 	}
@@ -1016,7 +1018,7 @@ JobPrintCommands(Job *job)
 			break;
 		}
 
-		JobPrintCommand(job, &wr, ln->datum);
+		JobPrintCommand(job, &wr, ln, ln->datum);
 		seen = TRUE;
 	}
 
@@ -2126,7 +2128,7 @@ InitShellNameAndPath(void)
 #ifdef DEFSHELL_CUSTOM
 	if (shellName[0] == '/') {
 		shellPath = shellName;
-		shellName = strrchr(shellPath, '/') + 1;
+		shellName = str_basename(shellPath);
 		return;
 	}
 #endif
@@ -2288,7 +2290,8 @@ DelSig(int sig)
 		(void)bmake_signal(sig, SIG_DFL);
 }
 
-static void JobSigReset(void)
+static void
+JobSigReset(void)
 {
 	DelSig(SIGINT);
 	DelSig(SIGHUP);

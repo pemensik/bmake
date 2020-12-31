@@ -87,6 +87,8 @@ unit-tests/cmdline.exp
 unit-tests/cmdline.mk
 unit-tests/comment.exp
 unit-tests/comment.mk
+unit-tests/compat-error.exp
+unit-tests/compat-error.mk
 unit-tests/cond-cmp-numeric-eq.exp
 unit-tests/cond-cmp-numeric-eq.mk
 unit-tests/cond-cmp-numeric-ge.exp
@@ -105,6 +107,8 @@ unit-tests/cond-cmp-string.exp
 unit-tests/cond-cmp-string.mk
 unit-tests/cond-cmp-unary.exp
 unit-tests/cond-cmp-unary.mk
+unit-tests/cond-eof.exp
+unit-tests/cond-eof.mk
 unit-tests/cond-func-commands.exp
 unit-tests/cond-func-commands.mk
 unit-tests/cond-func-defined.exp
@@ -305,6 +309,10 @@ unit-tests/directive-export.exp
 unit-tests/directive-export.mk
 unit-tests/directive-for-generating-endif.exp
 unit-tests/directive-for-generating-endif.mk
+unit-tests/directive-for-lines.exp
+unit-tests/directive-for-lines.mk
+unit-tests/directive-for-null.exp
+unit-tests/directive-for-null.mk
 unit-tests/directive-for.exp
 unit-tests/directive-for.mk
 unit-tests/directive-hyphen-include.exp

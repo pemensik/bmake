@@ -1107,9 +1107,9 @@ BMAKE(1)                FreeBSD General Commands Manual               BMAKE(1)
              The message is printed along with the name of the makefile and
              line number.
 
-     [1m.undef [4m[22mvariable[0m
-             Un-define the specified global variable.  Only global variables
-             may be un-defined.
+     [1m.undef [4m[22mvariable[24m [4m...[0m
+             Un-define the specified global variables.  Only global variables
+             can be un-defined.
 
      [1m.unexport [4m[22mvariable[24m [4m...[0m
              The opposite of `.export'.  The specified global [4mvariable[24m will be
@@ -1581,4 +1581,4 @@ BMAKE(1)                FreeBSD General Commands Manual               BMAKE(1)
 
      There is no way of escaping a space character in a filename.
 
-FreeBSD 11.3                   November 24, 2020                  FreeBSD 11.3
+FreeBSD 11.3                   December 22, 2020                  FreeBSD 11.3

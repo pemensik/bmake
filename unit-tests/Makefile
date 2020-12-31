@@ -1,6 +1,6 @@
-# $Id: Makefile,v 1.133 2020/12/14 00:40:20 sjg Exp $
+# $Id: Makefile,v 1.137 2020/12/22 01:04:40 sjg Exp $
 #
-# $NetBSD: Makefile,v 1.248 2020/12/13 05:13:38 sjg Exp $
+# $NetBSD: Makefile,v 1.256 2020/12/21 20:47:29 rillig Exp $
 #
 # Unit tests for make(1)
 #
@@ -30,7 +30,8 @@
 # src/tests/usr.bin/make/t_make.sh.
 #
 
-# we use this below but we might be an older make
+# we use these below but we might be an older make
+.MAKE.OS?= ${uname -s:L:sh}
 .MAKE.UID?= ${id -u:L:sh}
 
 # Each test is in a sub-makefile.
@@ -45,6 +46,7 @@ TESTS+=		cmd-interrupt
 TESTS+=		cmdline
 TESTS+=		cmdline-undefined
 TESTS+=		comment
+TESTS+=		compat-error
 TESTS+=		cond-cmp-numeric
 TESTS+=		cond-cmp-numeric-eq
 TESTS+=		cond-cmp-numeric-ge
@@ -54,6 +56,7 @@ TESTS+=		cond-cmp-numeric-lt
 TESTS+=		cond-cmp-numeric-ne
 TESTS+=		cond-cmp-string
 TESTS+=		cond-cmp-unary
+TESTS+=		cond-eof
 TESTS+=		cond-func
 TESTS+=		cond-func-commands
 TESTS+=		cond-func-defined
@@ -156,6 +159,8 @@ TESTS+=		directive-export-gmake
 TESTS+=		directive-export-literal
 TESTS+=		directive-for
 TESTS+=		directive-for-generating-endif
+TESTS+=		directive-for-lines
+TESTS+=		directive-for-null
 TESTS+=		directive-hyphen-include
 TESTS+=		directive-if
 TESTS+=		directive-if-nested
@@ -501,13 +506,6 @@ SED_CMDS.var-op-shell+=	\
 	-e 's,^${.SHELL:T}: ,,' \
 	-e '/command/s,No such.*,not found,'
 SED_CMDS.vardebug+=	-e 's,${.SHELL},</path/to/shell>,'
-SED_CMDS.varmod-edge+=	-e 's, line [0-9]*:, line omitted:,'
-SED_CMDS.varmod-gmtime+=	-e 's,Tue Jan 19 03:14:08 2038,<normalized>,'
-SED_CMDS.varmod-gmtime+=	${:D FreeBSD i386 still has 32-bit time_t. }
-SED_CMDS.varmod-gmtime+=	-e 's,Fri Dec 13 20:45:52 1901,<normalized>,'
-SED_CMDS.varmod-localtime+=	-e 's,Tue Jan 19 04:14:08 2038,<normalized>,'
-SED_CMDS.varmod-localtime+=	${:D FreeBSD i386 still has 32-bit time_t. }
-SED_CMDS.varmod-localtime+=	-e 's,Fri Dec 13 21:45:52 1901,<normalized>,'
 SED_CMDS.varmod-subst-regex+= \
 			-e 's,\(Regex compilation error:\).*,\1 (details omitted),'
 SED_CMDS.varname-dot-parsedir=	-e '/in some cases/ s,^make: "[^"]*,make: "<normalized>,'
@@ -602,7 +600,7 @@ _MKMSG_TEST= :
 
 MAKE_TEST_ENV?=	MALLOC_OPTIONS="JA"	# for jemalloc
 
-.if ${.MAKE.OS:U${uname -s:L:sh}} == "NetBSD"
+.if ${.MAKE.OS} == "NetBSD"
 LIMIT_RESOURCES?=	ulimit -v 200000
 .endif
 LIMIT_RESOURCES?=	:
@@ -637,6 +635,10 @@ _SED_CMDS+=	-e '/stopped/s, /.*, unit-tests,'
 # strip ${.CURDIR}/ from the output
 _SED_CMDS+=	-e 's,${.CURDIR:S,.,\\.,g}/,,g'
 _SED_CMDS+=	-e 's,${UNIT_TESTS:S,.,\\.,g}/,,g'
+# on AT&T derrived systems; false exits 255 not 1
+.if ${.MAKE.OS:N*BSD} != ""
+_SED_CMDS+=	-e 's,\(Error code\) 255,\1 1,'
+.endif
 
 .rawout.out:
 	@${TOOL_SED} ${_SED_CMDS} ${SED_CMDS.${.PREFIX:T}} \

@@ -1,3 +1,14 @@
+2020-12-22  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* sys.mk (MAKE_SHELL): use ${.SHELL:Ush}
+	and use := when setting SHELL
+
+2020-12-21  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20201221
+
+	* dirdeps-options.mk: latest bmake allows only one arg to .undef
+
 2020-12-11  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* dirdeps-targets.mk: allow for "." in DIRDEPS_TARGETS_DIRS

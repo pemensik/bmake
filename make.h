@@ -1,4 +1,4 @@
-/*	$NetBSD: make.h,v 1.233 2020/12/11 23:00:59 rillig Exp $	*/
+/*	$NetBSD: make.h,v 1.236 2020/12/22 22:31:50 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -141,8 +141,12 @@
  * A boolean type is defined as an integer, not an enum, for historic reasons.
  * The only allowed values are the constants TRUE and FALSE (1 and 0).
  */
-
-#ifdef USE_DOUBLE_BOOLEAN
+#if defined(USE_C99_BOOLEAN)
+#include <stdbool.h>
+typedef bool Boolean;
+#define FALSE false
+#define TRUE true
+#elif defined(USE_DOUBLE_BOOLEAN)
 /* During development, to find type mismatches in function declarations. */
 typedef double Boolean;
 #define TRUE 1.0
@@ -537,7 +541,7 @@ extern SearchPath *defSysIncPath;
 /* Startup directory */
 extern char curdir[];
 /* The basename of the program name, suffixed with [n] for sub-makes.  */
-extern char *progname;
+extern const char *progname;
 /* Name of the .depend makefile */
 extern char *makeDependfile;
 /* If we replaced environ, this will be non-NULL. */
@@ -593,7 +597,7 @@ typedef enum DebugFlags {
 
 #define CONCAT(a, b) a##b
 
-#define DEBUG(module) (opts.debug & CONCAT(DEBUG_,module))
+#define DEBUG(module) ((opts.debug & CONCAT(DEBUG_, module)) != 0)
 
 void debug_printf(const char *, ...) MAKE_ATTR_PRINTFLIKE(1, 2);
 
