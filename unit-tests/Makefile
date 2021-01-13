@@ -1,6 +1,6 @@
-# $Id: Makefile,v 1.137 2020/12/22 01:04:40 sjg Exp $
+# $Id: Makefile,v 1.138 2021/01/01 22:55:09 sjg Exp $
 #
-# $NetBSD: Makefile,v 1.256 2020/12/21 20:47:29 rillig Exp $
+# $NetBSD: Makefile,v 1.260 2020/12/31 03:05:12 rillig Exp $
 #
 # Unit tests for make(1)
 #
@@ -41,6 +41,7 @@
 #TESTS+=		archive
 #TESTS+=		archive-suffix
 TESTS+=		cmd-errors
+TESTS+=		cmd-errors-jobs
 TESTS+=		cmd-errors-lint
 TESTS+=		cmd-interrupt
 TESTS+=		cmdline
@@ -151,13 +152,17 @@ TESTS+=		directive-elifmake
 TESTS+=		directive-elifndef
 TESTS+=		directive-elifnmake
 TESTS+=		directive-else
+TESTS+=		directive-endfor
 TESTS+=		directive-endif
 TESTS+=		directive-error
 TESTS+=		directive-export
 TESTS+=		directive-export-env
+TESTS+=		directive-export-impl
 TESTS+=		directive-export-gmake
 TESTS+=		directive-export-literal
 TESTS+=		directive-for
+TESTS+=		directive-for-errors
+TESTS+=		directive-for-escape
 TESTS+=		directive-for-generating-endif
 TESTS+=		directive-for-lines
 TESTS+=		directive-for-null

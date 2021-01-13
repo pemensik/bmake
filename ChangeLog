@@ -1,3 +1,48 @@
+2021-01-10  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20210110
+	Merge with NetBSD make, pick up
+	o fix lint warnings
+	o consistently use boolean expressions in conditions
+
+2021-01-08  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20210108
+	Merge with NetBSD make, pick up
+	o job.c: back to polling token pipe if we want a token
+	o main.c: always print 'stopped in' on first call
+	The execption is if we bail because of an abort token
+	in which case just exit 6.
+
+2021-01-01  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20210101
+	Merge with NetBSD make, pick up
+	o Happy New Year!
+	o rename CmdOpts.lint to strict
+	o exit 2 on technical errors
+	o replace pointers in controlling conditions with booleans
+	o replace global preserveUndefined with VARE_KEEP_UNDEF
+	o compat.c: re-export variables from the actual make process
+	if using vfork this is the effect anyway
+	o cond.c: clean up VarParseResult constants
+	o for.c: fix undefined behavior in SubstVarLong
+	make control flow in SubstVarLong of .for loops more obvious
+	clean up SubstVarShort in .for loops
+	extract ForSubstBody from ForReadMore
+	clean up ForReadMore
+	simplify termination condition for .for loop
+	add error handling for .for loop items
+	job.c: re-export variables from the actual make process
+	parse.c: remove mmap for loading files, only allow files < 1 GiB
+	fix edge case in := with undefined in variable name
+	skip variable expansion in ParseDependencyTargetWord
+	var.c: split ExportVar into separate functions
+	clean up code in extracted ExportVar functions
+	remove dead code from ApplyModifiersIndirect
+	split Var_Subst into easily understandable functions
+	clean up VarParseResult constants
+
 2020-12-25  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* main.c: use .MAKE.DEPENDFILE as set by makefiles

@@ -1,9 +1,9 @@
-/*	$NetBSD: util.c,v 1.72 2020/12/15 20:39:15 rillig Exp $	*/
+/*	$NetBSD: util.c,v 1.73 2020/12/30 10:03:16 rillig Exp $	*/
 
 /*
  * Missing stuff from OS's
  *
- *	$Id: util.c,v 1.44 2020/12/20 21:53:11 sjg Exp $
+ *	$Id: util.c,v 1.45 2021/01/01 22:55:09 sjg Exp $
  */
 
 #include <sys/param.h>
@@ -13,7 +13,7 @@
 
 #include "make.h"
 
-MAKE_RCSID("$NetBSD: util.c,v 1.72 2020/12/15 20:39:15 rillig Exp $");
+MAKE_RCSID("$NetBSD: util.c,v 1.73 2020/12/30 10:03:16 rillig Exp $");
 
 #if !defined(MAKE_NATIVE) && !defined(HAVE_STRERROR)
 extern int errno, sys_nerr;
@@ -153,7 +153,8 @@ main(int argc, char *argv[])
 
 
 #if defined(__hpux__) || defined(__hpux)
-/* strrcpy():
+/*
+ * strrcpy():
  *	Like strcpy, going backwards and returning the new pointer
  */
 static char *

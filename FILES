@@ -75,6 +75,8 @@ unit-tests/archive-suffix.exp
 unit-tests/archive-suffix.mk
 unit-tests/archive.exp
 unit-tests/archive.mk
+unit-tests/cmd-errors-jobs.exp
+unit-tests/cmd-errors-jobs.mk
 unit-tests/cmd-errors-lint.exp
 unit-tests/cmd-errors-lint.mk
 unit-tests/cmd-errors.exp
@@ -295,6 +297,8 @@ unit-tests/directive-elifnmake.exp
 unit-tests/directive-elifnmake.mk
 unit-tests/directive-else.exp
 unit-tests/directive-else.mk
+unit-tests/directive-endfor.exp
+unit-tests/directive-endfor.mk
 unit-tests/directive-endif.exp
 unit-tests/directive-endif.mk
 unit-tests/directive-error.exp
@@ -303,10 +307,16 @@ unit-tests/directive-export-env.exp
 unit-tests/directive-export-env.mk
 unit-tests/directive-export-gmake.exp
 unit-tests/directive-export-gmake.mk
+unit-tests/directive-export-impl.exp
+unit-tests/directive-export-impl.mk
 unit-tests/directive-export-literal.exp
 unit-tests/directive-export-literal.mk
 unit-tests/directive-export.exp
 unit-tests/directive-export.mk
+unit-tests/directive-for-errors.exp
+unit-tests/directive-for-errors.mk
+unit-tests/directive-for-escape.exp
+unit-tests/directive-for-escape.mk
 unit-tests/directive-for-generating-endif.exp
 unit-tests/directive-for-generating-endif.mk
 unit-tests/directive-for-lines.exp

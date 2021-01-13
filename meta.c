@@ -1,4 +1,4 @@
-/*      $NetBSD: meta.c,v 1.165 2020/12/22 22:31:50 rillig Exp $ */
+/*      $NetBSD: meta.c,v 1.168 2021/01/10 21:20:46 rillig Exp $ */
 
 /*
  * Implement 'meta' mode.
@@ -128,7 +128,7 @@ meta_open_filemon(BuildMon *pbm)
 
     pbm->mon_fd = -1;
     pbm->filemon = NULL;
-    if (!useFilemon || !pbm->mfp)
+    if (!useFilemon || pbm->mfp == NULL)
 	return;
 
     pbm->filemon = filemon_open();
@@ -258,9 +258,9 @@ meta_name(char *mname, size_t mnamelen,
      * So we use realpath() just to get the dirname, and leave the
      * basename as given to us.
      */
-    if ((cp = strrchr(tname, '/'))) {
-	if (cached_realpath(tname, buf)) {
-	    if ((rp = strrchr(buf, '/'))) {
+    if ((cp = strrchr(tname, '/')) != NULL) {
+	if (cached_realpath(tname, buf) != NULL) {
+	    if ((rp = strrchr(buf, '/')) != NULL) {
 		rp++;
 		cp++;
 		if (strcmp(cp, rp) != 0)
@@ -331,7 +331,7 @@ is_submake(const char *cmd, GNode *gn)
 	p_len = strlen(p_make);
     }
     cp = strchr(cmd, '$');
-    if ((cp)) {
+    if (cp != NULL) {
 	(void)Var_Subst(cmd, gn, VARE_WANTRES, &mp);
 	/* TODO: handle errors */
 	cmd = mp;
@@ -378,7 +378,7 @@ printCMD(const char *cmd, FILE *fp, GNode *gn)
 {
     char *cmd_freeIt = NULL;
 
-    if (strchr(cmd, '$')) {
+    if (strchr(cmd, '$') != NULL) {
 	(void)Var_Subst(cmd, gn, VARE_WANTRES, &cmd_freeIt);
 	/* TODO: handle errors */
 	cmd = cmd_freeIt;
@@ -407,7 +407,7 @@ printCMDs(GNode *gn, FILE *fp)
 	} \
 	return FALSE; \
     } \
-} while (0)
+} while (/*CONSTCOND*/0)
 
 
 /*
@@ -455,7 +455,7 @@ meta_needed(GNode *gn, const char *dname,
     }
 
     /* make sure these are canonical */
-    if (cached_realpath(dname, objdir_realpath))
+    if (cached_realpath(dname, objdir_realpath) != NULL)
 	dname = objdir_realpath;
 
     /* If we aren't in the object directory, don't create a meta file. */
@@ -527,7 +527,7 @@ meta_create(BuildMon *pbm, GNode *gn)
     fprintf(fp, "CWD %s\n", getcwd(buf, sizeof buf));
     fprintf(fp, "TARGET %s\n", tname);
     cp = GNode_VarOodate(gn);
-    if (cp && *cp) {
+    if (cp != NULL && *cp != '\0') {
 	fprintf(fp, "OODATE %s\n", cp);
     }
     if (metaEnv) {
@@ -579,7 +579,7 @@ meta_init(void)
 
 
 #define get_mode_bf(bf, token) \
-    if ((cp = strstr(make_mode, token))) \
+    if ((cp = strstr(make_mode, token)) != NULL) \
 	bf = boolValue(cp + sizeof (token) - 1)
 
 /*
@@ -597,15 +597,15 @@ meta_mode_init(const char *make_mode)
     writeMeta = TRUE;
 
     if (make_mode != NULL) {
-	if (strstr(make_mode, "env"))
+	if (strstr(make_mode, "env") != NULL)
 	    metaEnv = TRUE;
-	if (strstr(make_mode, "verb"))
+	if (strstr(make_mode, "verb") != NULL)
 	    metaVerbose = TRUE;
-	if (strstr(make_mode, "read"))
+	if (strstr(make_mode, "read") != NULL)
 	    writeMeta = FALSE;
-	if (strstr(make_mode, "nofilemon"))
+	if (strstr(make_mode, "nofilemon") != NULL)
 	    useFilemon = FALSE;
-	if (strstr(make_mode, "ignore-cmd"))
+	if (strstr(make_mode, "ignore-cmd") != NULL)
 	    metaIgnoreCMDs = TRUE;
 	if (useFilemon)
 	    get_mode_bf(filemonMissing, "missing-filemon=");
@@ -704,7 +704,7 @@ meta_job_child(Job *job)
     }
     if (pbm->mfp != NULL) {
 	close(fileno(pbm->mfp));
-	if (useFilemon && pbm->filemon) {
+	if (useFilemon && pbm->filemon != NULL) {
 	    pid_t pid;
 
 	    pid = getpid();
@@ -727,7 +727,7 @@ meta_job_parent(Job *job, pid_t pid)
     } else {
 	pbm = &Mybm;
     }
-    if (useFilemon && pbm->filemon) {
+    if (useFilemon && pbm->filemon != NULL) {
 	filemon_setpid_parent(pbm->filemon, pid);
     }
 #endif
@@ -744,7 +744,7 @@ meta_job_fd(Job *job)
     } else {
 	pbm = &Mybm;
     }
-    if (useFilemon && pbm->filemon) {
+    if (useFilemon && pbm->filemon != NULL) {
 	return filemon_readfd(pbm->filemon);
     }
 #endif
@@ -762,7 +762,7 @@ meta_job_event(Job *job)
     } else {
 	pbm = &Mybm;
     }
-    if (useFilemon && pbm->filemon) {
+    if (useFilemon && pbm->filemon != NULL) {
 	return filemon_process(pbm->filemon);
     }
 #endif
@@ -818,7 +818,7 @@ meta_job_output(Job *job, char *cp, const char *nl)
 		(void)Var_Subst("${" MAKE_META_PREFIX "}",
 				VAR_GLOBAL, VARE_WANTRES, &meta_prefix);
 		/* TODO: handle errors */
-		if ((cp2 = strchr(meta_prefix, '$')))
+		if ((cp2 = strchr(meta_prefix, '$')) != NULL)
 		    meta_prefix_len = (size_t)(cp2 - meta_prefix);
 		else
 		    meta_prefix_len = strlen(meta_prefix);
@@ -847,7 +847,7 @@ meta_cmd_finish(void *pbmp)
 	pbm = &Mybm;
 
 #ifdef USE_FILEMON
-    if (pbm->filemon) {
+    if (pbm->filemon != NULL) {
 	while (filemon_process(pbm->filemon) > 0)
 	    continue;
 	if (filemon_close(pbm->filemon) == -1)
@@ -971,7 +971,7 @@ path_starts_with(const char *path, const char *prefix)
     return path[n] == '\0' || path[n] == '/';
 }
 
-static int
+static Boolean
 meta_ignore(GNode *gn, const char *p)
 {
     char fname[MAXPATHLEN];
@@ -1041,7 +1041,7 @@ meta_ignore(GNode *gn, const char *p)
  * if we detect this we want to reproduce it.
  * Setting oodate TRUE will have that effect.
  */
-#define CHECK_VALID_META(p) if (!(p && *p)) { \
+#define CHECK_VALID_META(p) if (!(p != NULL && *p != '\0')) { \
     warnx("%s: %d: malformed", fname, lineno); \
     oodate = TRUE; \
     continue; \
@@ -1050,7 +1050,7 @@ meta_ignore(GNode *gn, const char *p)
 #define DEQUOTE(p) if (*p == '\'') {	\
     char *ep; \
     p++; \
-    if ((ep = strchr(p, '\''))) \
+    if ((ep = strchr(p, '\'')) != NULL) \
 	*ep = '\0'; \
     }
 
@@ -1381,7 +1381,7 @@ meta_oodate(GNode *gn, Boolean oodate)
 
 		    /* ignore anything containing the string "tmp" */
 		    /* XXX: The arguments to strstr must be swapped. */
-		    if ((strstr("tmp", p)))
+		    if (strstr("tmp", p) != NULL)
 			break;
 
 		    if ((link_src != NULL && cached_lstat(p, &cst) < 0) ||
@@ -1440,7 +1440,7 @@ meta_oodate(GNode *gn, Boolean oodate)
 			}
 			sdirs[sdx++] = NULL;
 
-			for (sdp = sdirs; *sdp && !found; sdp++) {
+			for (sdp = sdirs; *sdp != NULL && !found; sdp++) {
 #ifdef DEBUG_META_MODE
 			    DEBUG3(META, "%s: %d: looking for: %s\n",
 				   fname, lineno, *sdp);
@@ -1497,9 +1497,9 @@ meta_oodate(GNode *gn, Boolean oodate)
 		    char *cmd = cmdNode->datum;
 		    Boolean hasOODATE = FALSE;
 
-		    if (strstr(cmd, "$?"))
+		    if (strstr(cmd, "$?") != NULL)
 			hasOODATE = TRUE;
-		    else if ((cp = strstr(cmd, ".OODATE"))) {
+		    else if ((cp = strstr(cmd, ".OODATE")) != NULL) {
 			/* check for $[{(].OODATE[:)}] */
 			if (cp > cmd + 2 && cp[-2] == '$')
 			    hasOODATE = TRUE;
@@ -1512,7 +1512,7 @@ meta_oodate(GNode *gn, Boolean oodate)
 		    (void)Var_Subst(cmd, gn, VARE_WANTRES|VARE_UNDEFERR, &cmd);
 		    /* TODO: handle errors */
 
-		    if ((cp = strchr(cmd, '\n'))) {
+		    if ((cp = strchr(cmd, '\n')) != NULL) {
 			int n;
 
 			/*
@@ -1583,7 +1583,8 @@ meta_oodate(GNode *gn, Boolean oodate)
 	    const char *cp = NULL;
 
 	    /* if target is in .CURDIR we do not need a meta file */
-	    if (gn->path && (cp = strrchr(gn->path, '/')) && cp > gn->path) {
+	    if (gn->path != NULL && (cp = strrchr(gn->path, '/')) != NULL &&
+		(cp > gn->path)) {
 		if (strncmp(curdir, gn->path, (size_t)(cp - gn->path)) != 0) {
 		    cp = NULL;		/* not in .CURDIR */
 		}
@@ -1659,7 +1660,7 @@ meta_compat_parent(pid_t child)
     close(childPipe[1]);			/* child side */
     outfd = childPipe[0];
 #ifdef USE_FILEMON
-    metafd = Mybm.filemon ? filemon_readfd(Mybm.filemon) : -1;
+    metafd = Mybm.filemon != NULL ? filemon_readfd(Mybm.filemon) : -1;
 #else
     metafd = -1;
 #endif
@@ -1684,7 +1685,7 @@ meta_compat_parent(pid_t child)
 	    err(1, "select");
 	}
 
-	if (outfd != -1 && FD_ISSET(outfd, &readfds)) do {
+	if (outfd != -1 && FD_ISSET(outfd, &readfds) != 0) do {
 	    /* XXX this is not line-buffered */
 	    ssize_t nread = read(outfd, buf, sizeof buf - 1);
 	    if (nread == -1)
@@ -1698,8 +1699,8 @@ meta_compat_parent(pid_t child)
 	    fflush(stdout);
 	    buf[nread] = '\0';
 	    meta_job_output(NULL, buf, "");
-	} while (0);
-	if (metafd != -1 && FD_ISSET(metafd, &readfds)) {
+	} while (/*CONSTCOND*/0);
+	if (metafd != -1 && FD_ISSET(metafd, &readfds) != 0) {
 	    if (meta_job_event(NULL) <= 0)
 		metafd = -1;
 	}

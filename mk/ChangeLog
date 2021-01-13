@@ -1,3 +1,10 @@
+2021-01-06  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20210101
+
+	* dirdeps.mk: first time we are read, just use TARGET_SPEC for
+	_DEP_TARGET_SPEC
+
 2020-12-22  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* sys.mk (MAKE_SHELL): use ${.SHELL:Ush}

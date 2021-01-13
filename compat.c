@@ -1,4 +1,4 @@
-/*	$NetBSD: compat.c,v 1.216 2020/12/20 21:07:32 rillig Exp $	*/
+/*	$NetBSD: compat.c,v 1.219 2021/01/10 21:20:46 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990 The Regents of the University of California.
@@ -99,7 +99,7 @@
 #include "pathnames.h"
 
 /*	"@(#)compat.c	8.2 (Berkeley) 3/19/94"	*/
-MAKE_RCSID("$NetBSD: compat.c,v 1.216 2020/12/20 21:07:32 rillig Exp $");
+MAKE_RCSID("$NetBSD: compat.c,v 1.219 2021/01/10 21:20:46 rillig Exp $");
 
 static GNode *curTarg = NULL;
 static pid_t compatChild;
@@ -121,7 +121,8 @@ CompatDeleteTarget(GNode *gn)
 	}
 }
 
-/* Interrupt the creation of the current target and remove it if it ain't
+/*
+ * Interrupt the creation of the current target and remove it if it ain't
  * precious. Then exit.
  *
  * If .INTERRUPT exists, its commands are run first WITH INTERRUPTS IGNORED.
@@ -209,7 +210,8 @@ UseShell(const char *cmd MAKE_ATTR_UNUSED)
 #endif
 }
 
-/* Execute the next command for a target. If the command returns an error,
+/*
+ * Execute the next command for a target. If the command returns an error,
  * the node's made field is set to ERROR and creation stops.
  *
  * Input:
@@ -282,7 +284,7 @@ Compat_RunCommand(const char *cmdp, GNode *gn, StringListNode *ln)
 			errCheck = FALSE;
 		else if (*cmd == '+') {
 			doIt = TRUE;
-			if (!shellName)	/* we came here from jobs */
+			if (shellName == NULL)	/* we came here from jobs */
 				Shell_Init();
 		} else
 			break;
@@ -327,7 +329,7 @@ Compat_RunCommand(const char *cmdp, GNode *gn, StringListNode *ln)
 		/* The following work for any of the builtin shell specs. */
 		int shargc = 0;
 		shargv[shargc++] = shellPath;
-		if (errCheck && shellErrFlag)
+		if (errCheck && shellErrFlag != NULL)
 			shargv[shargc++] = shellErrFlag;
 		shargv[shargc++] = DEBUG(SHELL) ? "-xc" : "-c";
 		shargv[shargc++] = cmd;
@@ -353,6 +355,8 @@ Compat_RunCommand(const char *cmdp, GNode *gn, StringListNode *ln)
 	}
 #endif
 
+	Var_ReexportVars();
+
 	/*
 	 * Fork and execute the single command. If the fork fails, we abort.
 	 */
@@ -361,7 +365,6 @@ Compat_RunCommand(const char *cmdp, GNode *gn, StringListNode *ln)
 		Fatal("Could not fork");
 	}
 	if (cpid == 0) {
-		Var_ReexportVars();
 #ifdef USE_META
 		if (useMeta) {
 			meta_compat_child();
@@ -626,7 +629,8 @@ MakeOther(GNode *gn, GNode *pgn)
 	}
 }
 
-/* Make a target.
+/*
+ * Make a target.
  *
  * If an error is detected and not being ignored, the process exits.
  *
@@ -695,7 +699,8 @@ InitSignals(void)
 		bmake_signal(SIGQUIT, CompatInterrupt);
 }
 
-/* Initialize this module and start making.
+/*
+ * Initialize this module and start making.
  *
  * Input:
  *	targs		The target nodes to re-create
@@ -705,7 +710,7 @@ Compat_Run(GNodeList *targs)
 {
 	GNode *errorNode = NULL;
 
-	if (!shellName)
+	if (shellName == NULL)
 		Shell_Init();
 
 	InitSignals();
