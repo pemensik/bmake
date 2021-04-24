@@ -1,3 +1,43 @@
+2021-04-20  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20210420
+	Merge with NetBSD make, pick up
+	o use C99 bool type
+	o convert VarEvalFlags back into an enum
+	o cond.c: do not complain when skipping the condition 'no >= 10'
+	o hash.c: avoid allocating memory for simple variable names
+	o job.c: use distinct wording for writing to the shell commands file
+	remove type name for the abort status in job handling
+	rename PrintOutput to PrintFilteredOutput to avoid confusion
+	o main.c: avoid double slash in name of temporary directory
+	o var.c: use straight quotes for error 'Bad conditional expression'
+	reduce memory allocations in the modifiers ':D' and ':U'
+	rename members of ModifyWord_LoopArgs
+	clean up pattern flags for the modifiers ':S' and ':C'
+	reduce memory allocation and strlen calls in modifier ':from=to'
+	in the ':Q' modifier, only allocate memory if necessary
+	improve performance for LazyBuf
+	remove redundant parameter from ParseVarnameLong
+	migrate ParseModifierPart to use Substring
+	avoid unnecessary calls to strlen when evaluating modifiers
+	migrate ModifyWord functions to use Substring
+	migrate handling of the modifier ':S,from,to,' to Substring
+	reduce debug logging and memory allocation for ${:U...}
+	reduce verbosity of the -dv debug logging for standard cases
+	clean up debug logging for ':M' and ':N'
+	disallow '$' in the variable name of the modifier ':@'
+	simplify access to the name of an expression during evaluation
+
+2021-03-30  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20210330
+	Merge with NetBSD make, pick up
+	o replace enum bit-field with struct bit-field for VarEvalFlags
+	o rename VARE_NONE to VARE_PARSE_ONLY
+	o var.c: rename ApplyModifiersState to ModChain
+	fix double varname expansion in the variable modifier '::='
+	change debug log for variable evaluation flags to lowercase
+
 2021-03-14  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20210314

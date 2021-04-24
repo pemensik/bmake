@@ -1,3 +1,9 @@
+2021-04-20  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20210420
+
+	* dirdeps.mk: revert previous - not always safe.
+
 2021-03-20  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* install-mk (MK_VERSION): 20210321

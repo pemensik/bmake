@@ -1,78 +1,21 @@
-# $NetBSD: varmod-loop.mk,v 1.10 2021/02/23 14:17:21 rillig Exp $
+# $NetBSD: varmod-loop.mk,v 1.15 2021/04/11 13:35:56 rillig Exp $
 #
 # Tests for the :@var@...${var}...@ variable modifier.
 
 .MAKE.SAVE_DOLLARS=	yes
 
-all: mod-loop-varname
-all: mod-loop-resolve
-all: mod-loop-varname-dollar
+all: varname-overwriting-target
 all: mod-loop-dollar
 
-# In the :@ modifier, the name of the loop variable can even be generated
-# dynamically.  There's no practical use-case for this, and hopefully nobody
-# will ever depend on this, but technically it's possible.
-# Therefore, in -dL mode, this is forbidden, see lint.mk.
-mod-loop-varname:
-	@echo :${:Uone two three:@${:Ubar:S,b,v,}@+${var}+@:Q}:
-
-	# ":::" is a very creative variable name, unlikely in practice.
-	# The expression ${\:\:\:} would not work since backslashes can only
-	# be escaped in the modifiers, but not in the variable name.
-	@echo :${:U1 2 3:@:::@x${${:U\:\:\:}}y@}:
-
-	# "@@" is another creative variable name.
-	@echo :${:U1 2 3:@\@\@@x${@@}y@}:
-
+varname-overwriting-target:
 	# Even "@" works as a variable name since the variable is installed
 	# in the "current" scope, which in this case is the one from the
-	# target.
+	# target.  Because of this, after the loop has finished, '$@' is
+	# undefined.  This is something that make doesn't expect, this may
+	# even trigger an assertion failure somewhere.
 	@echo :$@: :${:U1 2 3:@\@@x${@}y@}: :$@:
 
-	# In extreme cases, even the backslash can be used as variable name.
-	# It needs to be doubled though.
-	@echo :${:U1 2 3:@\\@x${${:Ux:S,x,\\,}}y@}:
 
-	# The variable name can technically be empty, and in this situation
-	# the variable value cannot be accessed since the empty "variable"
-	# is protected to always return an empty string.
-	@echo empty: :${:U1 2 3:@@x${}y@}:
-
-
-# The :@ modifier resolves the variables from the replacement text once more
-# than expected.  In particular, it resolves _all_ variables from the scope,
-# and not only the loop variable (in this case v).
-SRCS=		source
-CFLAGS.source=	before
-ALL_CFLAGS:=	${SRCS:@src@${CFLAGS.${src}}@}	# note the ':='
-CFLAGS.source+=	after
-.if ${ALL_CFLAGS} != "before"
-.  error
-.endif
-
-
-# In the following example, the modifier ':@' expands the '$$' to '$'.  This
-# means that when the resulting expression is evaluated, these resulting '$'
-# will be interpreted as starting a subexpression.
-#
-# The d means direct reference, the i means indirect reference.
-RESOLVE=	${RES1} $${RES1}
-RES1=		1d${RES2} 1i$${RES2}
-RES2=		2d${RES3} 2i$${RES3}
-RES3=		3
-
-# TODO: convert to '.if'.
-mod-loop-resolve:
-	@echo $@:${RESOLVE:@v@w${v}w@:Q}:
-
-
-# Until 2020-07-20, the variable name of the :@ modifier could end with one
-# or two dollar signs, which were silently ignored.
-# There's no point in allowing a dollar sign in that position.
-mod-loop-varname-dollar:
-	@echo $@:${1 2 3:L:@v$@($v)@:Q}.
-	@echo $@:${1 2 3:L:@v$$@($v)@:Q}.
-	@echo $@:${1 2 3:L:@v$$$@($v)@:Q}.
 
 # Demonstrate that it is possible to generate dollar signs using the
 # :@ modifier.
@@ -124,9 +67,9 @@ mod-loop-dollar:
 # This string literal is written with 8 dollars, and this is saved as the
 # variable value.  But as soon as this value is evaluated, it goes through
 # Var_Subst, which replaces each '$$' with a single '$'.  This could be
-# prevented by VARE_KEEP_DOLLAR, but that flag is usually removed before
-# expanding subexpressions.  See ApplyModifier_Loop and ParseModifierPart
-# for examples.
+# prevented by VARE_EVAL_KEEP_DOLLAR, but that flag is usually removed
+# before expanding subexpressions.  See ApplyModifier_Loop and
+# ParseModifierPart for examples.
 #
 .MAKEFLAGS: -dcp
 USE_8_DOLLARS=	${:U1:@var@${8_DOLLARS}@} ${8_DOLLARS} $$$$$$$$
@@ -135,20 +78,20 @@ USE_8_DOLLARS=	${:U1:@var@${8_DOLLARS}@} ${8_DOLLARS} $$$$$$$$
 .endif
 #
 SUBST_CONTAINING_LOOP:= ${USE_8_DOLLARS}
-# The ':=' assignment operator evaluates the variable value using the flag
-# VARE_KEEP_DOLLAR, which means that some dollar signs are preserved, but not
-# all.  The dollar signs in the top-level expression and in the indirect
-# ${8_DOLLARS} are preserved.
+# The ':=' assignment operator evaluates the variable value using the mode
+# VARE_KEEP_DOLLAR_UNDEF, which means that some dollar signs are preserved,
+# but not all.  The dollar signs in the top-level expression and in the
+# indirect ${8_DOLLARS} are preserved.
 #
 # The variable modifier :@var@ does not preserve the dollar signs though, no
 # matter in which context it is evaluated.  What happens in detail is:
 # First, the modifier part "${8_DOLLARS}" is parsed without expanding it.
 # Next, each word of the value is expanded on its own, and at this moment
-# in ApplyModifier_Loop, the VARE_KEEP_DOLLAR flag is not passed down to
+# in ApplyModifier_Loop, the flag keepDollar is not passed down to
 # ModifyWords, resulting in "$$$$" for the first word of USE_8_DOLLARS.
 #
 # The remaining words of USE_8_DOLLARS are not affected by any variable
-# modifier and are thus expanded with the flag VARE_KEEP_DOLLAR in action.
+# modifier and are thus expanded with the flag keepDollar in action.
 # The variable SUBST_CONTAINING_LOOP therefore gets assigned the raw value
 # "$$$$ $$$$$$$$ $$$$$$$$".
 #

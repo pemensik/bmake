@@ -62,6 +62,7 @@ ranlib.h
 realpath.c
 setenv.c
 sigcompat.c
+str.h
 str.c
 stresep.c
 strlcpy.c
@@ -399,6 +400,8 @@ unit-tests/job-flags.exp
 unit-tests/job-flags.mk
 unit-tests/job-output-long-lines.exp
 unit-tests/job-output-long-lines.mk
+unit-tests/job-output-null.exp
+unit-tests/job-output-null.mk
 unit-tests/jobs-empty-commands.exp
 unit-tests/jobs-empty-commands.mk
 unit-tests/jobs-error-indirect.exp
@@ -677,6 +680,8 @@ unit-tests/varmod-l-name-to-value.exp
 unit-tests/varmod-l-name-to-value.mk
 unit-tests/varmod-localtime.exp
 unit-tests/varmod-localtime.mk
+unit-tests/varmod-loop-varname.exp
+unit-tests/varmod-loop-varname.mk
 unit-tests/varmod-loop.exp
 unit-tests/varmod-loop.mk
 unit-tests/varmod-match-escape.exp

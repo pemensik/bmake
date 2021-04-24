@@ -1,6 +1,6 @@
-# $Id: Makefile,v 1.145 2021/03/14 21:54:40 sjg Exp $
+# $Id: Makefile,v 1.146 2021/04/20 21:09:26 sjg Exp $
 #
-# $NetBSD: Makefile,v 1.273 2021/03/14 11:49:37 rillig Exp $
+# $NetBSD: Makefile,v 1.276 2021/04/15 19:02:29 rillig Exp $
 #
 # Unit tests for make(1)
 #
@@ -203,6 +203,7 @@ TESTS+=		impsrc
 TESTS+=		include-main
 TESTS+=		job-flags
 #TESTS+=		job-output-long-lines
+TESTS+=		job-output-null
 TESTS+=		jobs-empty-commands
 TESTS+=		jobs-error-indirect
 TESTS+=		jobs-error-nested
@@ -348,6 +349,7 @@ TESTS+=		varmod-indirect
 TESTS+=		varmod-l-name-to-value
 TESTS+=		varmod-localtime
 TESTS+=		varmod-loop
+TESTS+=		varmod-loop-varname
 TESTS+=		varmod-match
 TESTS+=		varmod-match-escape
 TESTS+=		varmod-no-match
@@ -499,9 +501,9 @@ SED_CMDS.opt-debug-jobs+=	-e 's,^\(.Command: <shell>\) -q,\1,'
 SED_CMDS.opt-debug-lint+=	${STD_SED_CMDS.regex}
 SED_CMDS.opt-jobs-no-action=	${STD_SED_CMDS.hide-from-output}
 SED_CMDS.opt-no-action-runflags= ${STD_SED_CMDS.hide-from-output}
-# For Compat_RunCommand, useShell == FALSE.
+# For Compat_RunCommand, useShell == false.
 SED_CMDS.sh-dots=		-e 's,^.*\.\.\.:.*,<not found: ...>,'
-# For Compat_RunCommand, useShell == TRUE.
+# For Compat_RunCommand, useShell == true.
 SED_CMDS.sh-dots+=		-e 's,^make: exec(\(.*\)) failed (.*)$$,<not found: \1>,'
 SED_CMDS.sh-dots+=		-e 's,^\(\*\*\* Error code \)[1-9][0-9]*,\1<nonzero>,'
 SED_CMDS.sh-errctl=		${STD_SED_CMDS.dj}
