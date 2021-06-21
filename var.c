@@ -1,4 +1,4 @@
-/*	$NetBSD: var.c,v 1.930 2021/04/19 22:22:27 rillig Exp $	*/
+/*	$NetBSD: var.c,v 1.934 2021/06/21 08:40:44 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -148,7 +148,7 @@
 #include "metachar.h"
 
 /*	"@(#)var.c	8.3 (Berkeley) 3/19/94" */
-MAKE_RCSID("$NetBSD: var.c,v 1.930 2021/04/19 22:22:27 rillig Exp $");
+MAKE_RCSID("$NetBSD: var.c,v 1.934 2021/06/21 08:40:44 rillig Exp $");
 
 /*
  * Variables are defined using one of the VAR=value assignments.  Their
@@ -1659,9 +1659,11 @@ tryagain:
 					Error("No subexpression \\%u",
 					    (unsigned)n);
 				} else if (m[n].rm_so == -1) {
-					Error(
-					    "No match for subexpression \\%u",
-					    (unsigned)n);
+					if (opts.strict) {
+						Error(
+						    "No match for subexpression \\%u",
+							(unsigned)n);
+					}
 				} else {
 					SepBuf_AddBytesBetween(buf,
 					    wp + m[n].rm_so, wp + m[n].rm_eo);
@@ -1830,24 +1832,6 @@ Words_JoinFree(Words words)
 	Words_Free(words);
 
 	return Buf_DoneData(&buf);
-}
-
-/* Remove adjacent duplicate words. */
-static char *
-VarUniq(const char *str)
-{
-	Words words = Str_Words(str, false);
-
-	if (words.len > 1) {
-		size_t i, j;
-		for (j = 0, i = 1; i < words.len; i++)
-			if (strcmp(words.words[i], words.words[j]) != 0 &&
-			    (++j != i))
-				words.words[j] = words.words[i];
-		words.len = j + 1;
-	}
-
-	return Words_JoinFree(words);
 }
 
 
@@ -2159,7 +2143,7 @@ IsEscapedModifierPart(const char *p, char delim,
 	return p[1] == '&' && subst != NULL;
 }
 
-/* See ParseModifierPart */
+/* See ParseModifierPart for the documentation. */
 static VarParseResult
 ParseModifierPartSubst(
     const char **pp,
@@ -2167,8 +2151,8 @@ ParseModifierPartSubst(
     VarEvalMode emode,
     ModChain *ch,
     LazyBuf *part,
-    /* For the first part of the :S modifier, sets the VARP_ANCHOR_END flag
-     * if the last character of the pattern is a $. */
+    /* For the first part of the modifier ':S', set anchorEnd if the last
+     * character of the pattern is a $. */
     PatternFlags *out_pflags,
     /* For the second part of the :S modifier, allow ampersands to be
      * escaped and replace unescaped ampersands with subst->lhs. */
@@ -2289,10 +2273,9 @@ ParseModifierPartSubst(
  * including the next unescaped delimiter.  The delimiter, as well as the
  * backslash or the dollar, can be escaped with a backslash.
  *
- * Return the parsed (and possibly expanded) string, or NULL if no delimiter
- * was found.  On successful return, the parsing position pp points right
- * after the delimiter.  The delimiter is not included in the returned
- * value though.
+ * Return VPR_OK if parsing succeeded, together with the parsed (and possibly
+ * expanded) part.  In that case, pp points right after the delimiter.  The
+ * delimiter is not included in the part though.
  */
 static VarParseResult
 ParseModifierPart(
@@ -3569,15 +3552,36 @@ ApplyModifier_WordFunc(const char **pp, ModChain *ch,
 	return AMR_OK;
 }
 
+/* Remove adjacent duplicate words. */
 static ApplyModifierResult
 ApplyModifier_Unique(const char **pp, ModChain *ch)
 {
+	Words words;
+
 	if (!IsDelimiter((*pp)[1], ch))
 		return AMR_UNKNOWN;
 	(*pp)++;
 
-	if (ModChain_ShouldEval(ch))
-		Expr_SetValueOwn(ch->expr, VarUniq(ch->expr->value.str));
+	if (!ModChain_ShouldEval(ch))
+		return AMR_OK;
+
+	words = Str_Words(ch->expr->value.str, false);
+
+	if (words.len > 1) {
+		size_t si, di;
+
+		di = 0;
+		for (si = 1; si < words.len; si++) {
+			if (strcmp(words.words[si], words.words[di]) != 0) {
+				di++;
+				if (di != si)
+					words.words[di] = words.words[si];
+			}
+		}
+		words.len = di + 1;
+	}
+
+	Expr_SetValueOwn(ch->expr, Words_JoinFree(words));
 
 	return AMR_OK;
 }

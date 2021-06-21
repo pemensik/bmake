@@ -1,3 +1,30 @@
+2021-06-21  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20210621
+	Merge with NetBSD make, pick up
+	o var.c: only report error for unmatched regex subexpression
+	when linting (-dL) since we cannot tell when an unmatched
+	subexpression is an expected result.
+	o move unmatched regex subexpression tests to
+	varmod-subst-regex.mk and enable strict (lint) mode
+
+2021-06-16  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20210616
+	Merge with NetBSD make, pick up
+	o more unit tests
+	o cond.c: rename If_Eval to EvalBare
+	improve function names for parsing conditions
+	o job.c: fix error handling of targets that cannot be made
+	o var.c: uncompress code in ApplyModifier_Unique
+
+2021-05-18  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20210518
+	Merge with NetBSD make, pick up
+	o fix unit-tests/opt-chdir to cope with /nonexistent existing.
+	o job.c: Print -de error information when running multiple jobs
+
 2021-04-20  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20210420

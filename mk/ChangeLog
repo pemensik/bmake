@@ -1,3 +1,22 @@
+2021-06-16  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20210616
+	
+	* dirdeps.mk: when using .MAKE.DEPENDFILE_PREFERENCE to find
+	depend files to read, anchor MACHINE at , or end of string
+	to avoid prefix match.
+
+2021-05-04  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20210504
+	
+	* dirdeps.mk: re-implement ALL_MACHINES support to better
+	cater for local complexities, when ONLY_TARGET_SPEC_LIST
+	is not set. local.dirdeps.mk can set
+	DIRDEPS_ALL_MACHINES_FILTER and/or
+	DIRDEPS_ALL_MACHINES_FILTER_XTRAS to filter the results we get
+	from listing all existing Makefile.depend.* 
+
 2021-04-20  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* install-mk (MK_VERSION): 20210420

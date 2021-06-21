@@ -62,8 +62,8 @@ ranlib.h
 realpath.c
 setenv.c
 sigcompat.c
-str.h
 str.c
+str.h
 stresep.c
 strlcpy.c
 suff.c
@@ -402,6 +402,8 @@ unit-tests/job-output-long-lines.exp
 unit-tests/job-output-long-lines.mk
 unit-tests/job-output-null.exp
 unit-tests/job-output-null.mk
+unit-tests/jobs-empty-commands-error.exp
+unit-tests/jobs-empty-commands-error.mk
 unit-tests/jobs-empty-commands.exp
 unit-tests/jobs-empty-commands.mk
 unit-tests/jobs-error-indirect.exp
@@ -442,6 +444,8 @@ unit-tests/opt-debug-curdir.exp
 unit-tests/opt-debug-curdir.mk
 unit-tests/opt-debug-dir.exp
 unit-tests/opt-debug-dir.mk
+unit-tests/opt-debug-errors-jobs.exp
+unit-tests/opt-debug-errors-jobs.mk
 unit-tests/opt-debug-errors.exp
 unit-tests/opt-debug-errors.mk
 unit-tests/opt-debug-file.exp
