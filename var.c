@@ -1,4 +1,4 @@
-/*	$NetBSD: var.c,v 1.934 2021/06/21 08:40:44 rillig Exp $	*/
+/*	$NetBSD: var.c,v 1.938 2021/06/21 18:25:20 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -148,7 +148,7 @@
 #include "metachar.h"
 
 /*	"@(#)var.c	8.3 (Berkeley) 3/19/94" */
-MAKE_RCSID("$NetBSD: var.c,v 1.934 2021/06/21 08:40:44 rillig Exp $");
+MAKE_RCSID("$NetBSD: var.c,v 1.938 2021/06/21 18:25:20 rillig Exp $");
 
 /*
  * Variables are defined using one of the VAR=value assignments.  Their
@@ -1593,6 +1593,52 @@ VarREError(int reerr, const regex_t *pat, const char *str)
 	free(errbuf);
 }
 
+/*
+ * Replacement of regular expressions is not specified by POSIX, therefore
+ * re-implement it here.
+ */
+static void
+RegexReplace(const char *replace, SepBuf *buf, const char *wp,
+	     const regmatch_t *m, size_t nsub)
+{
+	const char *rp;
+	unsigned int n;
+
+	for (rp = replace; *rp != '\0'; rp++) {
+		if (*rp == '\\' && (rp[1] == '&' || rp[1] == '\\')) {
+			SepBuf_AddBytes(buf, rp + 1, 1);
+			rp++;
+			continue;
+		}
+
+		if (*rp == '&') {
+			SepBuf_AddBytesBetween(buf,
+			    wp + m[0].rm_so, wp + m[0].rm_eo);
+			continue;
+		}
+
+		if (*rp != '\\' || !ch_isdigit(rp[1])) {
+			SepBuf_AddBytes(buf, rp, 1);
+			continue;
+		}
+
+		/* \0 to \9 backreference */
+		n = rp[1] - '0';
+		rp++;
+
+		if (n >= nsub) {
+			Error("No subexpression \\%u", n);
+		} else if (m[n].rm_so == -1) {
+			if (opts.strict) {
+				Error("No match for subexpression \\%u", n);
+			}
+		} else {
+			SepBuf_AddBytesBetween(buf,
+			    wp + m[n].rm_so, wp + m[n].rm_eo);
+		}
+	}
+}
+
 struct ModifyWord_SubstRegexArgs {
 	regex_t re;
 	size_t nsub;
@@ -1611,87 +1657,42 @@ ModifyWord_SubstRegex(Substring word, SepBuf *buf, void *data)
 	struct ModifyWord_SubstRegexArgs *args = data;
 	int xrv;
 	const char *wp;
-	const char *rp;
 	int flags = 0;
 	regmatch_t m[10];
 
 	assert(word.end[0] == '\0');	/* assume null-terminated word */
 	wp = word.start;
 	if (args->pflags.subOnce && args->matched)
-		goto nosub;
+		goto no_match;
 
-tryagain:
+again:
 	xrv = regexec(&args->re, wp, args->nsub, m, flags);
+	if (xrv == 0)
+		goto ok;
+	if (xrv != REG_NOMATCH)
+		VarREError(xrv, &args->re, "Unexpected regex error");
+no_match:
+	SepBuf_AddStr(buf, wp);
+	return;
 
-	switch (xrv) {
-	case 0:
-		args->matched = true;
-		SepBuf_AddBytes(buf, wp, (size_t)m[0].rm_so);
+ok:
+	args->matched = true;
+	SepBuf_AddBytes(buf, wp, (size_t)m[0].rm_so);
 
-		/*
-		 * Replacement of regular expressions is not specified by
-		 * POSIX, therefore implement it here.
-		 */
+	RegexReplace(args->replace, buf, wp, m, args->nsub);
 
-		for (rp = args->replace; *rp != '\0'; rp++) {
-			if (*rp == '\\' && (rp[1] == '&' || rp[1] == '\\')) {
-				SepBuf_AddBytes(buf, rp + 1, 1);
-				rp++;
-				continue;
-			}
-
-			if (*rp == '&') {
-				SepBuf_AddBytesBetween(buf,
-				    wp + m[0].rm_so, wp + m[0].rm_eo);
-				continue;
-			}
-
-			if (*rp != '\\' || !ch_isdigit(rp[1])) {
-				SepBuf_AddBytes(buf, rp, 1);
-				continue;
-			}
-
-			{	/* \0 to \9 backreference */
-				size_t n = (size_t)(rp[1] - '0');
-				rp++;
-
-				if (n >= args->nsub) {
-					Error("No subexpression \\%u",
-					    (unsigned)n);
-				} else if (m[n].rm_so == -1) {
-					if (opts.strict) {
-						Error(
-						    "No match for subexpression \\%u",
-							(unsigned)n);
-					}
-				} else {
-					SepBuf_AddBytesBetween(buf,
-					    wp + m[n].rm_so, wp + m[n].rm_eo);
-				}
-			}
-		}
-
-		wp += m[0].rm_eo;
-		if (args->pflags.subGlobal) {
-			flags |= REG_NOTBOL;
-			if (m[0].rm_so == 0 && m[0].rm_eo == 0) {
-				SepBuf_AddBytes(buf, wp, 1);
-				wp++;
-			}
-			if (*wp != '\0')
-				goto tryagain;
+	wp += m[0].rm_eo;
+	if (args->pflags.subGlobal) {
+		flags |= REG_NOTBOL;
+		if (m[0].rm_so == 0 && m[0].rm_eo == 0) {
+			SepBuf_AddBytes(buf, wp, 1);
+			wp++;
 		}
 		if (*wp != '\0')
-			SepBuf_AddStr(buf, wp);
-		break;
-	default:
-		VarREError(xrv, &args->re, "Unexpected regex error");
-		/* FALLTHROUGH */
-	case REG_NOMATCH:
-	nosub:
-		SepBuf_AddStr(buf, wp);
-		break;
+			goto again;
 	}
+	if (*wp != '\0')
+		SepBuf_AddStr(buf, wp);
 }
 #endif
 

@@ -1,3 +1,24 @@
+2021-07-04  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20210704
+	Merge with NetBSD make, pick up
+	o unit-tests: fix some tests to be more portable
+	- job-output-null not all shells do the same number of write calls
+	- objdir-writable if TMPDIR is set; /tmp may not be usable
+
+2021-07-01  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20210701
+	Merge with NetBSD make, pick up
+	o unit-tests: allow for BROKEN_TESTS to list TESTS to be skipped;
+	some tests just cannot work in some environments.
+	o buf.c: simpler upper bound for length in Buf_AddInt
+	o cond.c: fix grammar in error message for malformed conditional
+	o for.c: prevent newline injection (from ${.newline}) in .for loops
+	o var.c: use more practical data type in RegexReplace
+	(avoid need for %zu)
+	extract RegexReplace from ModifyWord_SubstRegex
+	
 2021-06-21  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20210621
