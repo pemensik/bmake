@@ -7,6 +7,7 @@ PSD.doc/Makefile
 PSD.doc/tutorial.ms
 README
 VERSION
+_strtol.h
 aclocal.m4
 arch.c
 bmake.1
@@ -694,10 +695,14 @@ unit-tests/varmod-match.exp
 unit-tests/varmod-match.mk
 unit-tests/varmod-no-match.exp
 unit-tests/varmod-no-match.mk
+unit-tests/varmod-order-numeric.exp
+unit-tests/varmod-order-numeric.mk
 unit-tests/varmod-order-reverse.exp
 unit-tests/varmod-order-reverse.mk
 unit-tests/varmod-order-shuffle.exp
 unit-tests/varmod-order-shuffle.mk
+unit-tests/varmod-order-string.exp
+unit-tests/varmod-order-string.mk
 unit-tests/varmod-order.exp
 unit-tests/varmod-order.mk
 unit-tests/varmod-path.exp

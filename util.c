@@ -3,7 +3,7 @@
 /*
  * Missing stuff from OS's
  *
- *	$Id: util.c,v 1.46 2021/02/05 20:02:29 sjg Exp $
+ *	$Id: util.c,v 1.48 2021/07/30 21:15:45 sjg Exp $
  */
 
 #include <sys/param.h>
@@ -585,4 +585,80 @@ warnx(const char *fmt, ...)
         vwarnx(fmt, ap);
         va_end(ap);
 }
+#endif
+
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#elif defined(HAVE_STDINT_H)
+#include <stdint.h>
+#endif
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif
+
+#ifndef NUM_TYPE
+# ifdef HAVE_LONG_LONG_INT
+#   define NUM_TYPE long long
+# elif defined(_INT64_T_DECLARED) || defined(int64_t)
+#   define NUM_TYPE int64_t
+# endif
+#endif
+
+#ifdef NUM_TYPE
+#if !defined(HAVE_STRTOLL)
+#define BCS_ONLY
+#define _FUNCNAME strtoll
+#define __INT NUM_TYPE
+#undef __INT_MIN
+#undef __INT_MAX
+#ifdef LLONG_MAX
+# define __INT_MIN LLONG_MIN
+# define __INT_MAX LLONG_MAX
+#elif defined(INT64_MAX)
+# define __INT_MIN INT64_MIN
+# define __INT_MAX INT64_MAX
+#endif
+#ifndef _DIAGASSERT
+# define _DIAGASSERT(e)
+#endif
+#ifndef __UNCONST
+# define __UNCONST(a)      ((void *)(unsigned long)(const void *)(a))
+#endif
+#include "_strtol.h"
+#endif
+
+#endif
+
+#if !defined(HAVE_STRTOL)
+#define BCS_ONLY
+#define _FUNCNAME strtol
+#define __INT long
+#undef __INT_MIN
+#undef __INT_MAX
+#define __INT_MIN LONG_MIN
+#define __INT_MAX LONG_MAX
+#ifndef _DIAGASSERT
+# define _DIAGASSERT(e)
+#endif
+#ifndef __UNCONST
+# define __UNCONST(a)      ((void *)(unsigned long)(const void *)(a))
+#endif
+#include "_strtol.h"
+#endif
+
+#if !defined(HAVE_STRTOUL)
+#define BCS_ONLY
+#define _FUNCNAME strtoul
+#define __INT unsigned long
+#undef __INT_MIN
+#undef __INT_MAX
+#define __INT_MIN 0
+#define __INT_MAX ULONG_MAX
+#ifndef _DIAGASSERT
+# define _DIAGASSERT(e)
+#endif
+#ifndef __UNCONST
+# define __UNCONST(a)      ((void *)(unsigned long)(const void *)(a))
+#endif
+#include "_strtol.h"
 #endif

@@ -1,11 +1,11 @@
 dnl
 dnl RCSid:
-dnl	$Id: configure.in,v 1.70 2021/02/01 18:29:26 sjg Exp $
+dnl	$Id: configure.in,v 1.73 2021/07/30 21:15:45 sjg Exp $
 dnl
 dnl Process this file with autoconf to produce a configure script
 dnl
 AC_PREREQ(2.50)
-AC_INIT([bmake], [20210201], [sjg@NetBSD.org])
+AC_INIT([bmake], [20210730], [sjg@NetBSD.org])
 AC_CONFIG_HEADERS(config.h)
 
 dnl make srcdir absolute
@@ -176,6 +176,8 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C___ATTRIBUTE__
 AC_C_BIGENDIAN
 AC_C_CONST
+AC_TYPE_INT64_T
+AC_TYPE_LONG_LONG_INT
 AC_TYPE_MODE_T
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
@@ -187,9 +189,8 @@ AC_STRUCT_TM
 
 dnl we need sig_atomic_t
 AH_TEMPLATE([sig_atomic_t],[type that signal handlers can safely frob])
-AC_CHECK_TYPE(sig_atomic_t,,[
-AC_DEFINE([sig_atomic_t],[int],)
-],[
+AC_CHECK_TYPES([sig_atomic_t],[],[],
+[
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
@@ -224,6 +225,8 @@ AC_CHECK_FUNCS( \
 	strsep \
 	strtod \
 	strtol \
+	strtoll \
+	strtoul \
 	sysctl \
 	unsetenv \
 	vsnprintf \

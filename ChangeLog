@@ -1,3 +1,30 @@
+2021-08-03  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* var.c: use long for :On if we don't have a 64bit int type 
+
+	* VERSION (_MAKE_VERSION): 20210803
+	Merge with NetBSD make, pick up
+	o rework varmod-order tests to avoid qsort instability
+	o make.1: clarify :On entry
+
+2021-07-31  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20210731
+	Merge with NetBSD make, pick up
+	o fix some lint issues
+	o more unit tests
+	o var.c: rework of ApplyModifier_Order
+
+2021-07-30  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* util.c: add strto*l if HAVE_STRTO*L not defined
+
+	* VERSION (_MAKE_VERSION): 20210730
+	Merge with NetBSD make, pick up
+	o var.c: add :On and :Orn for numeric sort
+	  disabled if no 64bit type available.
+	o _strtol.h: to implement strto*l functions
+
 2021-07-04  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20210704
