@@ -1,4 +1,4 @@
-# $Id: options.mk,v 1.13 2020/08/19 17:51:53 sjg Exp $
+# $Id: options.mk,v 1.14 2021/08/10 21:37:19 sjg Exp $
 #
 #	@(#) Copyright (c) 2012, Simon J. Gerraty
 #
@@ -36,6 +36,10 @@ OPTION_PREFIX ?= MK_
 # DOMINANT_* is set to "yes"
 # Otherwise WITH_* and WITHOUT_* override the default.
 .for o in ${OPTIONS_DEFAULT_VALUES:M*/*}
+.if defined(WITH_${o:H}) && ${WITH_${o:H}} == "no"
+# a common miss-use - point out correct usage
+.warning use WITHOUT_${o:H}=1 not WITH_${o:H}=no
+.endif
 .if defined(NO_${o:H}) || defined(NO${o:H})
 # we cannot do it
 ${OPTION_PREFIX}${o:H} ?= no

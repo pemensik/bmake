@@ -1,3 +1,11 @@
+2021-08-11  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20210808
+	Merge with NetBSD make, pick up
+	o var.c: remove redundant initialization in ApplyModifier_Order
+
+	* mk/options.mk: issue warning for incorrect usage
+
 2021-08-03  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* var.c: use long for :On if we don't have a 64bit int type 
