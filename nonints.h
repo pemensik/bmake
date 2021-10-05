@@ -1,4 +1,4 @@
-/*	$NetBSD: nonints.h,v 1.213 2021/04/11 13:35:56 rillig Exp $	*/
+/*	$NetBSD: nonints.h,v 1.215 2021/09/12 08:03:48 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -167,7 +167,7 @@ void Parse_AddIncludeDir(const char *);
 void Parse_File(const char *, int);
 void Parse_SetInput(const char *, int, int, ReadMoreProc, void *);
 void Parse_MainName(GNodeList *);
-int Parse_GetFatals(void);
+int Parse_NumErrors(void);
 
 
 #ifndef HAVE_STRLCPY
@@ -211,7 +211,7 @@ void Targ_PrintCmds(GNode *);
 void Targ_PrintNode(GNode *, int);
 void Targ_PrintNodes(GNodeList *, int);
 const char *Targ_FmtTime(time_t);
-void Targ_PrintType(int);
+void Targ_PrintType(GNodeType);
 void Targ_PrintGraph(int);
 void Targ_Propagate(void);
 const char *GNodeMade_Name(GNodeMade);

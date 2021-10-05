@@ -323,6 +323,8 @@ unit-tests/directive-for-escape.exp
 unit-tests/directive-for-escape.mk
 unit-tests/directive-for-generating-endif.exp
 unit-tests/directive-for-generating-endif.mk
+unit-tests/directive-for-if.exp
+unit-tests/directive-for-if.mk
 unit-tests/directive-for-lines.exp
 unit-tests/directive-for-lines.mk
 unit-tests/directive-for-null.exp

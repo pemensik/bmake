@@ -1,3 +1,28 @@
+2021-10-01  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20211001
+	
+	* man.mk: use MAN_SUFFIXES and CMT2DOC_SUFFIXES for more
+	flexibility
+
+2021-09-13  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* options.mk (describe-options): print options and their values
+	  and optional description
+
+2021-09-11  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20210911
+	
+	* options.mk (show-options): print options and their values
+
+2021-09-08  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20210909
+
+	* lib.mk: apply patch from <daniel@octaforge.org>
+	to fix shared libs on Linux
+
 2021-08-08  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* install-mk (MK_VERSION): 20210808

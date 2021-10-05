@@ -1,3 +1,31 @@
+2021-10-01  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20211001
+	Merge with NetBSD make, pick up
+	o reduce locations reducing text size
+	o remove unnecessary const
+	o cond.c: fix lint warning on i386
+	do not allow unquoted 'left == right' after modifier ':?'
+	o hash.c: fix build for DEBUG_HASH_LOOKUP
+	o var.c: fix memory leak in error case of the ':?' modifier
+	
+2021-09-11  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20210911
+	Merge with NetBSD make, pick up
+	o var.c: replace remaining ModChain_ShouldEval with Expr_ShouldEval
+
+2021-09-08  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20210906
+	Merge with NetBSD make, pick up
+	o more unit tests
+	o lint cleanup
+	o rename some functions to better fit purpose
+	o for.c: cleanup - remove unnecessary optimization
+	  fix embedded newlines
+	o parse.c: correct case for CVS/RCS
+	
 2021-08-11  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20210808

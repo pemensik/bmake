@@ -1,4 +1,4 @@
-/*      $NetBSD: meta.c,v 1.181 2021/04/04 10:05:08 rillig Exp $ */
+/*      $NetBSD: meta.c,v 1.183 2021/08/19 15:50:30 rillig Exp $ */
 
 /*
  * Implement 'meta' mode.
@@ -248,8 +248,8 @@ meta_name(char *mname, size_t mnamelen,
 	  const char *cwd)
 {
     char buf[MAXPATHLEN];
-    char *rp;
-    char *cp;
+    char *rp, *cp;
+    const char *tname_base;
     char *tp;
     char *dtp;
     size_t ldname;
@@ -261,13 +261,13 @@ meta_name(char *mname, size_t mnamelen,
      * So we use realpath() just to get the dirname, and leave the
      * basename as given to us.
      */
-    if ((cp = strrchr(tname, '/')) != NULL) {
+    if ((tname_base = strrchr(tname, '/')) != NULL) {
 	if (cached_realpath(tname, buf) != NULL) {
 	    if ((rp = strrchr(buf, '/')) != NULL) {
 		rp++;
-		cp++;
-		if (strcmp(cp, rp) != 0)
-		    strlcpy(rp, cp, sizeof buf - (size_t)(rp - buf));
+		tname_base++;
+		if (strcmp(tname_base, rp) != 0)
+		    strlcpy(rp, tname_base, sizeof buf - (size_t)(rp - buf));
 	    }
 	    tname = buf;
 	} else {
@@ -325,8 +325,7 @@ is_submake(const char *cmd, GNode *gn)
     static const char *p_make = NULL;
     static size_t p_len;
     char *mp = NULL;
-    char *cp;
-    char *cp2;
+    const char *cp, *cp2;
     bool rc = false;
 
     if (p_make == NULL) {
@@ -557,9 +556,9 @@ meta_create(BuildMon *pbm, GNode *gn)
 }
 
 static bool
-boolValue(char *s)
+boolValue(const char *s)
 {
-    switch(*s) {
+    switch (*s) {
     case '0':
     case 'N':
     case 'n':
@@ -594,7 +593,7 @@ void
 meta_mode_init(const char *make_mode)
 {
     static bool once = false;
-    char *cp;
+    const char *cp;
     FStr value;
 
     useMeta = true;

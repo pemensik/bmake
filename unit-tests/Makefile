@@ -1,6 +1,6 @@
-# $Id: Makefile,v 1.151 2021/08/02 16:53:12 sjg Exp $
+# $Id: Makefile,v 1.152 2021/09/08 17:45:46 sjg Exp $
 #
-# $NetBSD: Makefile,v 1.282 2021/07/31 20:55:46 rillig Exp $
+# $NetBSD: Makefile,v 1.283 2021/08/30 17:08:13 rillig Exp $
 #
 # Unit tests for make(1)
 #
@@ -167,6 +167,7 @@ TESTS+=		directive-for
 TESTS+=		directive-for-errors
 TESTS+=		directive-for-escape
 TESTS+=		directive-for-generating-endif
+TESTS+=		directive-for-if
 TESTS+=		directive-for-lines
 TESTS+=		directive-for-null
 TESTS+=		directive-hyphen-include

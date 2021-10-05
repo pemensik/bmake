@@ -1,4 +1,4 @@
-/*	$NetBSD: var.c,v 1.946 2021/08/08 12:00:30 rillig Exp $	*/
+/*	$NetBSD: var.c,v 1.952 2021/09/23 22:54:09 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -148,7 +148,7 @@
 #include "metachar.h"
 
 /*	"@(#)var.c	8.3 (Berkeley) 3/19/94" */
-MAKE_RCSID("$NetBSD: var.c,v 1.946 2021/08/08 12:00:30 rillig Exp $");
+MAKE_RCSID("$NetBSD: var.c,v 1.952 2021/09/23 22:54:09 rillig Exp $");
 
 /*
  * Variables are defined using one of the VAR=value assignments.  Their
@@ -326,7 +326,7 @@ GNode *SCOPE_INTERNAL;
 
 static VarExportedMode var_exportedVars = VAR_EXPORTED_NONE;
 
-static const char *VarEvalMode_Name[] = {
+static const char VarEvalMode_Name[][32] = {
 	"parse-only",
 	"eval",
 	"eval-defined",
@@ -1613,7 +1613,8 @@ RegexReplace(const char *replace, SepBuf *buf, const char *wp,
 
 		if (*rp == '&') {
 			SepBuf_AddBytesBetween(buf,
-			    wp + m[0].rm_so, wp + m[0].rm_eo);
+			    wp + (size_t)m[0].rm_so,
+			    wp + (size_t)m[0].rm_eo);
 			continue;
 		}
 
@@ -1634,7 +1635,8 @@ RegexReplace(const char *replace, SepBuf *buf, const char *wp,
 			}
 		} else {
 			SepBuf_AddBytesBetween(buf,
-			    wp + m[n].rm_so, wp + m[n].rm_eo);
+			    wp + (size_t)m[n].rm_so,
+			    wp + (size_t)m[n].rm_eo);
 		}
 	}
 }
@@ -1681,7 +1683,7 @@ ok:
 
 	RegexReplace(args->replace, buf, wp, m, args->nsub);
 
-	wp += m[0].rm_eo;
+	wp += (size_t)m[0].rm_eo;
 	if (args->pflags.subGlobal) {
 		flags |= REG_NOTBOL;
 		if (m[0].rm_so == 0 && m[0].rm_eo == 0) {
@@ -1981,7 +1983,7 @@ VarStrftime(const char *fmt, bool zulu, time_t tim)
  * After parsing, the modifier is evaluated.  The side effects from evaluating
  * nested variable expressions in the modifier text often already happen
  * during parsing though.  For most modifiers this doesn't matter since their
- * only noticeable effect is that the update the value of the expression.
+ * only noticeable effect is that they update the value of the expression.
  * Some modifiers such as ':sh' or '::=' have noticeable side effects though.
  *
  * Evaluating the modifier usually takes the current value of the variable
@@ -2016,7 +2018,7 @@ typedef enum ExprDefined {
 	DEF_DEFINED
 } ExprDefined;
 
-static const char *const ExprDefined_Name[] = {
+static const char ExprDefined_Name[][10] = {
 	"regular",
 	"undefined",
 	"defined"
@@ -2570,6 +2572,7 @@ TryParseTime(const char **pp, time_t *out_time)
 static ApplyModifierResult
 ApplyModifier_Gmtime(const char **pp, ModChain *ch)
 {
+	Expr *expr;
 	time_t utc;
 
 	const char *mod = *pp;
@@ -2589,9 +2592,10 @@ ApplyModifier_Gmtime(const char **pp, ModChain *ch)
 		*pp = mod + 6;
 	}
 
-	if (ModChain_ShouldEval(ch))
-		Expr_SetValueOwn(ch->expr,
-		    VarStrftime(ch->expr->value.str, true, utc));
+	expr = ch->expr;
+	if (Expr_ShouldEval(expr))
+		Expr_SetValueOwn(expr,
+		    VarStrftime(expr->value.str, true, utc));
 
 	return AMR_OK;
 }
@@ -2600,6 +2604,7 @@ ApplyModifier_Gmtime(const char **pp, ModChain *ch)
 static ApplyModifierResult
 ApplyModifier_Localtime(const char **pp, ModChain *ch)
 {
+	Expr *expr;
 	time_t utc;
 
 	const char *mod = *pp;
@@ -2619,9 +2624,10 @@ ApplyModifier_Localtime(const char **pp, ModChain *ch)
 		*pp = mod + 9;
 	}
 
-	if (ModChain_ShouldEval(ch))
-		Expr_SetValueOwn(ch->expr,
-		    VarStrftime(ch->expr->value.str, false, utc));
+	expr = ch->expr;
+	if (Expr_ShouldEval(expr))
+		Expr_SetValueOwn(expr,
+		    VarStrftime(expr->value.str, false, utc));
 
 	return AMR_OK;
 }
@@ -2650,7 +2656,7 @@ ApplyModifier_Path(const char **pp, ModChain *ch)
 
 	(*pp)++;
 
-	if (!ModChain_ShouldEval(ch))
+	if (!Expr_ShouldEval(expr))
 		return AMR_OK;
 
 	Expr_Define(expr);
@@ -3155,14 +3161,14 @@ ApplyModifier_To(const char **pp, ModChain *ch)
 
 	if (mod[1] == 'u') {				/* :tu */
 		*pp = mod + 2;
-		if (ModChain_ShouldEval(ch))
+		if (Expr_ShouldEval(expr))
 			Expr_SetValueOwn(expr, str_toupper(expr->value.str));
 		return AMR_OK;
 	}
 
 	if (mod[1] == 'l') {				/* :tl */
 		*pp = mod + 2;
-		if (ModChain_ShouldEval(ch))
+		if (Expr_ShouldEval(expr))
 			Expr_SetValueOwn(expr, str_tolower(expr->value.str));
 		return AMR_OK;
 	}
@@ -3453,10 +3459,12 @@ ApplyModifier_IfElse(const char **pp, ModChain *ch)
 	if (cond_rc == COND_INVALID) {
 		Error("Bad conditional expression '%s' in '%s?%s:%s'",
 		    expr->name, expr->name, then_expr.str, else_expr.str);
+		FStr_Done(&then_expr);
+		FStr_Done(&else_expr);
 		return AMR_CLEANUP;
 	}
 
-	if (!ModChain_ShouldEval(ch)) {
+	if (!Expr_ShouldEval(expr)) {
 		FStr_Done(&then_expr);
 		FStr_Done(&else_expr);
 	} else if (value) {
@@ -4034,8 +4042,6 @@ ApplyModifiers(
     char endc		/* ')' or '}'; or '\0' for indirect modifiers */
 )
 {
-	/* LINTED 115 *//* warning: left operand of '=' must be modifiable lvalue */
-	/* That's a bug in lint; see tests/usr.bin/xlint/lint1/msg_115.c. */
 	ModChain ch = ModChain_Literal(expr, startc, endc, ' ', false);
 	const char *p;
 	const char *mod;
