@@ -1,6 +1,6 @@
 #
 # RCSid:
-#	$Id: auto.dep.mk,v 1.6 2020/08/19 17:51:53 sjg Exp $
+#	$Id: auto.dep.mk,v 1.7 2021/10/22 06:36:21 sjg Exp $
 #
 #	@(#) Copyright (c) 2010, Simon J. Gerraty
 #
@@ -39,6 +39,9 @@ __${.PARSEFILE}__:
 # actually it ignores <> so may not be a great idea
 CFLAGS_MD ?= -MD
 # -MF etc not available on all gcc versions.
+.if ${COMPILER_TYPE:Ugcc} == "gcc" && ${COMPILER_VERSION:U0} < 30000
+CFLAGS_MF=
+.endif
 CFLAGS_MF ?= -MF ${.TARGET:T}.d -MT ${.TARGET:T}
 CFLAGS += ${CFLAGS_MD} ${CFLAGS_MF}
 CXXFLAGS += ${CFLAGS_MD} ${CFLAGS_MF}

@@ -3,7 +3,7 @@
 /*
  * Missing stuff from OS's
  *
- *	$Id: util.c,v 1.48 2021/07/30 21:15:45 sjg Exp $
+ *	$Id: util.c,v 1.49 2021/10/14 19:26:52 sjg Exp $
  */
 
 #include <sys/param.h>
@@ -338,6 +338,10 @@ getcwd(path, sz)
 {
 	return getwd(path);
 }
+#endif
+
+#if !defined(HAVE_SIGACTION)
+#include "sigact.h"
 #endif
 
 /* force posix signals */

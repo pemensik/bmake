@@ -9,6 +9,9 @@
 /* Shell spec to use by default */
 #undef DEFSHELL_INDEX
 
+/* Path of default shell */
+#undef DEFSHELL_PATH
+
 /* Define to 1 if you have the <ar.h> header file. */
 #undef HAVE_AR_H
 
@@ -101,11 +104,29 @@
 /* Define to 1 if you have the `setpgid' function. */
 #undef HAVE_SETPGID
 
+/* Define to 1 if you have the `setrlimit' function. */
+#undef HAVE_SETRLIMIT
+
 /* Define to 1 if you have the `setsid' function. */
 #undef HAVE_SETSID
 
 /* Define to 1 if you have the `sigaction' function. */
 #undef HAVE_SIGACTION
+
+/* Define to 1 if you have the `sigaddset' function. */
+#undef HAVE_SIGADDSET
+
+/* Define to 1 if you have the `sigpending' function. */
+#undef HAVE_SIGPENDING
+
+/* Define to 1 if you have the `sigprocmask' function. */
+#undef HAVE_SIGPROCMASK
+
+/* Define to 1 if you have the `sigsetmask' function. */
+#undef HAVE_SIGSETMASK
+
+/* Define to 1 if you have the `sigsuspend' function. */
+#undef HAVE_SIGSUSPEND
 
 /* Define to 1 if you have the `sigvec' function. */
 #undef HAVE_SIGVEC
@@ -338,6 +359,12 @@
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
+
+/* Define to `__inline__' or `__inline' if that's what the C compiler
+   calls it, or to nothing if 'inline' is not supported under any name.  */
+#ifndef __cplusplus
+#undef inline
+#endif
 
 /* Define to the type of a signed integer type of width exactly 64 bits if
    such a type exists and the standard includes do not define it. */

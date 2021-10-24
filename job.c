@@ -2111,7 +2111,7 @@ Job_CatchOutput(void)
 				JobRestartJobs();
 		} else if (count == 0)
 			Punt("unexpected eof on token pipe");
-		else
+		else if (errno != EAGAIN)
 			Punt("token pipe read: %s", strerror(errno));
 		nready--;
 	}
@@ -2165,8 +2165,11 @@ InitShellNameAndPath(void)
 		return;
 	}
 #endif
-
+#ifdef DEFSHELL_PATH
+	shellPath = DEFSHELL_PATH;
+#else
 	shellPath = str_concat3(_PATH_DEFSHELLDIR, "/", shellName);
+#endif
 }
 
 void

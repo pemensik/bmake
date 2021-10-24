@@ -1,6 +1,6 @@
 #
 # RCSid:
-#	$Id: autodep.mk,v 1.38 2020/08/19 17:51:53 sjg Exp $
+#	$Id: autodep.mk,v 1.39 2021/10/22 06:36:21 sjg Exp $
 #
 #	@(#) Copyright (c) 1999-2010, Simon J. Gerraty
 #
@@ -67,6 +67,9 @@ __dependsrcs= ${__dependsrcsx:O:u}
 CFLAGS_MD?=-MD
 # -MF etc not available on all gcc versions.
 # we "fix" the .o later
+.if ${COMPILER_TYPE:Ugcc} == "gcc" && ${COMPILER_VERSION:U0} < 30000
+CFLAGS_MF=
+.endif
 CFLAGS_MF?=-MF ${.TARGET:T:R}.d -MT ${.TARGET:T:R}.o
 CFLAGS+= ${CFLAGS_MD} ${CFLAGS_MF}
 RM?= rm

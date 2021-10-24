@@ -1,3 +1,90 @@
+2021-10-22  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* configure.in: use_defshell, set both DEFSHELL_INDEX
+	and defshell_path if appropriate.
+	This makes it easier to use say the KSH specification with
+	and alternate path for the shell.
+	
+	* configure.in compat.c: for SCO we need to force UseShell
+
+	* configure.in: SCO /bin/sh is not usable, provide a list of
+	alternatives for use as .SHELL.
+	We still have to mark some tests as broken, plus more if we end up
+	with ksh as .SHELL.
+	Issue a warning about skipped tests.
+
+	* boot-strap: leave TOOL_DIFF to configure
+
+	* configure.in: on SCO native cc is not usable,
+	gcc is to be found in /usr/gnu/bin
+	and while ancient is at least able to compile bmake.
+	Thus we add /usr/gnu/bin to PATH if it exists, and later
+	check if $CC would have been found via $PATH.
+	If not we set CC to the full path of $CC.
+	Also gnu diff is known to support -u, so if it exists use it.
+
+	* configure.in: move getopt to AC_REPLACE_FUNCS
+	also add AC_C_INLINE - in an attempt to compile using
+	native cc on SCO.
+
+	* configure.in: check for stresep as well as strsep, since we
+	define the later to the former if necessary, and if we have to
+	provide stresep we also need to provide a prototype.
+
+	* configure.in: we no longer need to worry about
+	sys/cdefs.h providing __RCSID which simplifies things quite a bit.
+
+	* make.h: make sure we have __RCSID
+
+	* unit-tests/Makefile.config.in: add TOOL_DIFF so configure
+	can control it.
+
+2021-10-20  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION: 20211020
+	Merge with NetBSD make, pick up
+	o confirm sync of unit-tests
+
+2021-10-18  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* configure.in: check if timezone Europe/Berlin is supported
+	if not try UTC-1
+	* configure.in: if .OBJDIR is $srcdir/obj we need to create a
+	symlink unit-tests -> ../unit-tests/obj so that
+	unit-tests/Makefile.config is put in the right place.
+	* refine filtering of .OBJDIR in unit-tests
+	
+2021-10-16  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* Fix unit-tests on Minix 3.2.0
+	o job.c: do not punt if read of token pipe fails for EAGAIN.
+	On Minix at least, we are not ready to read the childExitJob pipe
+	when poll says we are.
+	There should actually be no reason for this pipe to be
+	non-blocking, but while that works fine on {Net,Free}BSD it
+	breaks another test case on Minix.
+	o unit-tests/Makefile: deal with variants of error messages
+	  and use of obj as .OBJDIR
+
+2021-10-14  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* configure.in: add sigaction to AC_REPLACE_FUNCS
+	we also need to check for sigaddset etc just for the benefit of
+	sigact.c
+
+	* Add sigact.c as sigaction.c so this "just works".
+	This should have been done back when bmake_signal started using
+	sigaction (I only just noticed that sigact.c wasn't here ;-)
+	Note: I no longer have access to any system where this would matter.
+
+2021-10-13  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20211011
+
+	* Makefile: cleanup a little
+
+	* configure.in: check for sigsetmask
+
 2021-10-01  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20211001

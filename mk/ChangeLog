@@ -1,7 +1,19 @@
+2021-10-16  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* autoconf.mk: if AUTOCONF_GENERATED_MAKEFILE is set and has not
+	been read, throw an error after running configure telling user to
+	restart.
+
+2021-10-13  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20211011
+
+	* Add support for SCO_SV
+
 2021-10-01  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* install-mk (MK_VERSION): 20211001
-	
+
 	* man.mk: use MAN_SUFFIXES and CMT2DOC_SUFFIXES for more
 	flexibility
 

@@ -187,7 +187,7 @@ DebugFailedTarget(const char *cmd, const GNode *gn)
 static bool
 UseShell(const char *cmd MAKE_ATTR_UNUSED)
 {
-#if !defined(MAKE_NATIVE)
+#if defined(FORCE_USE_SHELL) || !defined(MAKE_NATIVE)
 	/*
 	 * In a non-native build, the host environment might be weird enough
 	 * that it's necessary to go through a shell to get the correct

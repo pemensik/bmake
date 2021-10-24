@@ -62,6 +62,8 @@ pathnames.h
 ranlib.h
 realpath.c
 setenv.c
+sigact.h
+sigaction.c
 sigcompat.c
 str.c
 str.h

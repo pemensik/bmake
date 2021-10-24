@@ -844,6 +844,16 @@ pp_skip_hspace(char **pp)
 # define MAKE_RCSID(id) extern void do_not_define_rcsid(void)
 #elif defined(MAKE_NATIVE)
 # include <sys/cdefs.h>
+# ifndef __IDSTRING
+#   define __IDSTRING(name,string) \
+	static const char name[] MAKE_ATTR_UNUSED = string
+# endif
+# ifndef __RCSID
+#   define __RCSID(s) __IDSTRING(rcsid,s)
+# endif
+# ifndef __COPYRIGHT
+#   define __COPYRIGHT(s) __IDSTRING(copyright,s)
+# endif
 # define MAKE_RCSID(id) __RCSID(id)
 #elif defined(MAKE_ALL_IN_ONE) && defined(__COUNTER__)
 # define MAKE_RCSID_CONCAT(x, y) CONCAT(x, y)

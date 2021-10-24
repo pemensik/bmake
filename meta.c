@@ -98,6 +98,9 @@ extern char    **environ;
 #if !defined(HAVE_STRSEP)
 # define strsep(s, d) stresep((s), (d), '\0')
 #endif
+#if !defined(HAVE_STRESEP)
+char * stresep(char **, const char *, int);
+#endif
 
 /*
  * Filemon is a kernel module which snoops certain syscalls.

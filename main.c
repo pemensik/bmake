@@ -1127,7 +1127,7 @@ InitObjdir(const char *machine, const char *machine_arch)
 static void
 UnlimitFiles(void)
 {
-#if defined(MAKE_NATIVE) || (defined(HAVE_SETRLIMIT) && defined(RLIMIT_NOFILE))
+#if defined(HAVE_SETRLIMIT) && defined(RLIMIT_NOFILE)
 	struct rlimit rl;
 	if (getrlimit(RLIMIT_NOFILE, &rl) != -1 &&
 	    rl.rlim_cur != rl.rlim_max) {
