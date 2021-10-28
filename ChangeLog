@@ -1,3 +1,9 @@
+2021-10-24  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20211024
+	Merge with NetBSD make, pick up
+	o Punt on write errors - ENOSPC etc.
+
 2021-10-22  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* configure.in: use_defshell, set both DEFSHELL_INDEX

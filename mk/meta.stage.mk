@@ -1,4 +1,4 @@
-# $Id: meta.stage.mk,v 1.61 2021/01/31 04:43:12 sjg Exp $
+# $Id: meta.stage.mk,v 1.62 2021/10/25 18:23:01 sjg Exp $
 #
 #	@(#) Copyright (c) 2011-2017, Simon J. Gerraty
 #
@@ -264,7 +264,8 @@ CLEANFILES += ${STAGE_AS_SETS:@s@stage*$s@}
 # sometimes things need to be renamed as they are staged
 # each ${file} will be staged as ${STAGE_AS_${file:T}}
 # one could achieve the same with SYMLINKS
-# stage_as_and_symlink makes the original name a symlink to the new name
+# stage_as_and_symlink makes the original name (or ${STAGE_LINK_AS_${name}})
+# a symlink to the new name
 # it is the same as using stage_as and stage_symlinks but ensures
 # both operations happen together
 .for s in ${STAGE_AS_SETS:O:u}
@@ -294,7 +295,7 @@ STAGE_AS_AND_SYMLINK.$s ?= ${.ALLSRC:N.dirdep:Nstage_*}
 stage_as_and_symlink:	stage_as_and_symlink.$s
 stage_as_and_symlink.$s:	.dirdep
 	@${STAGE_AS_SCRIPT}; StageAs ${FLAGS.$@} ${STAGE_FILES_DIR.$s:U${STAGE_DIR.$s}:${STAGE_DIR_FILTER}} ${STAGE_AS_AND_SYMLINK.$s:O:@f@$f ${STAGE_AS_${f:tA}:U${STAGE_AS_${f:T}:U${f:T}}}@}
-	@${STAGE_LINKS_SCRIPT}; StageLinks -s ${STAGE_FILES_DIR.$s:U${STAGE_DIR.$s}:${STAGE_DIR_FILTER}} ${STAGE_AS_AND_SYMLINK.$s:O:@f@${STAGE_AS_${f:tA}:U${STAGE_AS_${f:T}:U${f:T}}} $f@}
+	@${STAGE_LINKS_SCRIPT}; StageLinks -s ${STAGE_FILES_DIR.$s:U${STAGE_DIR.$s}:${STAGE_DIR_FILTER}} ${STAGE_AS_AND_SYMLINK.$s:O:@f@${STAGE_AS_${f:tA}:U${STAGE_AS_${f:T}:U${f:T}}} ${STAGE_LINK_AS_${f}:U$f}@}
 	@touch $@
 .endif
 .endif

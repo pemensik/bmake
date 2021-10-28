@@ -1,3 +1,8 @@
+2021-10-24  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* meta.stage.mk: stage_as_and_symlink use ${STAGE_LINK_AS_$f:U$f}
+	as the symlink (rare)
+
 2021-10-16  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* autoconf.mk: if AUTOCONF_GENERATED_MAKEFILE is set and has not
