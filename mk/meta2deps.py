@@ -37,7 +37,7 @@ We only pay attention to a subset of the information in the
 
 """
 RCSid:
-	$Id: meta2deps.py,v 1.38 2021/06/17 05:20:08 sjg Exp $
+	$Id: meta2deps.py,v 1.39 2021/12/08 20:03:40 sjg Exp $
 
 	Copyright (c) 2011-2020, Simon J. Gerraty
 	Copyright (c) 2011-2017, Juniper Networks, Inc.
@@ -231,6 +231,7 @@ class MetaFile:
         self.reldir = conf.get('RELDIR')
         self.dpdeps = conf.get('DPDEPS')
         self.line = 0
+        self.dot_machine = '.' + self.machine
 
         if not self.conf:
             # some of the steps below we want to do only once
@@ -355,8 +356,8 @@ class MetaFile:
                 ddep = open(ddepf, 'r').readline().strip('# \n')
                 if self.debug > 1:
                     print("found %s: %s\n" % (ddepf, ddep), file=self.debug_out)
-                if ddep.endswith(self.machine):
-                    ddep = ddep[0:-(1+len(self.machine))]
+                if ddep.endswith(self.dot_machine):
+                    ddep = ddep[0:-len(self.dot_machine)]
                 elif self.target_spec and ddep.endswith(self.target_spec):
                     ddep = ddep[0:-(1+len(self.target_spec))]
 

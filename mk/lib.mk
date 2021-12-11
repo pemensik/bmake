@@ -1,7 +1,7 @@
-# $Id: lib.mk,v 1.72 2021/09/08 15:38:13 sjg Exp $
+# $Id: lib.mk,v 1.73 2021/12/08 05:56:50 sjg Exp $
 
 .if !target(__${.PARSEFILE}__)
-__${.PARSEFILE}__:
+__${.PARSEFILE}__: .NOTMAIN
 
 .include <init.mk>
 

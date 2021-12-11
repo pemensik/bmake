@@ -1,4 +1,4 @@
-/*	$NetBSD: parse.c,v 1.565 2021/09/21 23:06:18 rillig Exp $	*/
+/*	$NetBSD: parse.c,v 1.571 2021/12/07 23:56:06 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -124,7 +124,7 @@
 #include "pathnames.h"
 
 /*	"@(#)parse.c	8.3 (Berkeley) 3/19/94"	*/
-MAKE_RCSID("$NetBSD: parse.c,v 1.565 2021/09/21 23:06:18 rillig Exp $");
+MAKE_RCSID("$NetBSD: parse.c,v 1.571 2021/12/07 23:56:06 rillig Exp $");
 
 /* types and constants */
 
@@ -139,10 +139,14 @@ typedef struct IFile {
 	unsigned int cond_depth; /* 'if' nesting when file opened */
 	bool depending;	/* state of doing_depend on EOF */
 
-	/* The buffer from which the file's content is read. */
+	/*
+	 * The buffer from which the file's content is read.  The buffer
+	 * always ends with '\n', the buffer is not null-terminated, that is,
+	 * buf_end[0] is already out of bounds.
+	 */
 	char *buf_freeIt;
 	char *buf_ptr;		/* next char to be read */
-	char *buf_end;
+	char *buf_end;		/* buf_end[-1] == '\n' */
 
 	/* Function to read more data, with a single opaque argument. */
 	ReadMoreProc readMore;
@@ -2138,7 +2142,7 @@ Parse_AddIncludeDir(const char *dir)
  * line options.
  */
 static void
-IncludeFile(char *file, bool isSystem, bool depinc, bool silent)
+IncludeFile(const char *file, bool isSystem, bool depinc, bool silent)
 {
 	struct loadedfile *lf;
 	char *fullname;		/* full pathname of file */
@@ -2243,54 +2247,56 @@ IncludeFile(char *file, bool isSystem, bool depinc, bool silent)
 		doing_depend = depinc;	/* only turn it on */
 }
 
+/*
+ * Parse a directive like '.include' or '.-include'.
+ *
+ * .include "user-makefile.mk"
+ * .include <system-makefile.mk>
+ */
 static void
 ParseInclude(char *directive)
 {
-	char endc;		/* the character which ends the file spec */
-	char *cp;		/* current position in file spec */
+	char endc;		/* '>' or '"' */
+	char *p;
 	bool silent = directive[0] != 'i';
-	char *file = directive + (silent ? 8 : 7);
+	FStr file;
 
-	/* Skip to delimiter character so we know where to look */
-	pp_skip_hspace(&file);
+	p = directive + (silent ? 8 : 7);
+	pp_skip_hspace(&p);
 
-	if (*file != '"' && *file != '<') {
+	if (*p != '"' && *p != '<') {
 		Parse_Error(PARSE_FATAL,
 		    ".include filename must be delimited by '\"' or '<'");
 		return;
 	}
 
-	/*
-	 * Set the search path on which to find the include file based on the
-	 * characters which bracket its name. Angle-brackets imply it's
-	 * a system Makefile while double-quotes imply it's a user makefile
-	 */
-	if (*file == '<')
+	if (*p++ == '<')
 		endc = '>';
 	else
 		endc = '"';
+	file = FStr_InitRefer(p);
 
 	/* Skip to matching delimiter */
-	for (cp = ++file; *cp != '\0' && *cp != endc; cp++)
-		continue;
+	while (*p != '\0' && *p != endc)
+		p++;
 
-	if (*cp != endc) {
+	if (*p != endc) {
 		Parse_Error(PARSE_FATAL,
 		    "Unclosed .include filename. '%c' expected", endc);
 		return;
 	}
 
-	*cp = '\0';
+	*p = '\0';
 
-	/*
-	 * Substitute for any variables in the filename before trying to
-	 * find the file.
-	 */
-	(void)Var_Subst(file, SCOPE_CMDLINE, VARE_WANTRES, &file);
-	/* TODO: handle errors */
+	if (strchr(file.str, '$') != NULL) {
+		char *xfile;
+		Var_Subst(file.str, SCOPE_CMDLINE, VARE_WANTRES, &xfile);
+		/* TODO: handle errors */
+		file = FStr_InitOwn(xfile);
+	}
 
-	IncludeFile(file, endc == '>', directive[0] == 'd', silent);
-	free(file);
+	IncludeFile(file.str, endc == '>', directive[0] == 'd', silent);
+	FStr_Done(&file);
 }
 
 /*
@@ -2312,8 +2318,8 @@ SetFilenameVars(const char *filename, const char *dirvar, const char *filevar)
 		basename = slash + 1;
 	}
 
-	Global_SetExpand(dirvar, dirname.str);
-	Global_SetExpand(filevar, basename);
+	Global_Set(dirvar, dirname.str);
+	Global_Set(filevar, basename);
 
 	DEBUG5(PARSE, "%s: ${%s} = `%s' ${%s} = `%s'\n",
 	    __func__, dirvar, dirname.str, filevar, basename);
@@ -2647,13 +2653,15 @@ typedef enum ParseRawLineResult {
 
 /*
  * Parse until the end of a line, taking into account lines that end with
- * backslash-newline.
+ * backslash-newline.  The resulting line goes from out_line to out_line_end;
+ * the line is not null-terminated.
  */
 static ParseRawLineResult
 ParseRawLine(IFile *curFile, char **out_line, char **out_line_end,
 	     char **out_firstBackslash, char **out_firstComment)
 {
 	char *line = curFile->buf_ptr;
+	char *buf_end = curFile->buf_end;
 	char *p = line;
 	char *line_end = line;
 	char *firstBackslash = NULL;
@@ -2665,14 +2673,14 @@ ParseRawLine(IFile *curFile, char **out_line, char **out_line_end,
 	for (;;) {
 		char ch;
 
-		if (p == curFile->buf_end) {
+		if (p == buf_end) {
 			res = PRLR_EOF;
 			break;
 		}
 
 		ch = *p;
 		if (ch == '\0' ||
-		    (ch == '\\' && p + 1 < curFile->buf_end && p[1] == '\0')) {
+		    (ch == '\\' && p + 1 < buf_end && p[1] == '\0')) {
 			Parse_Error(PARSE_FATAL, "Zero byte read from file");
 			return PRLR_ERROR;
 		}
@@ -2683,7 +2691,7 @@ ParseRawLine(IFile *curFile, char **out_line, char **out_line_end,
 				firstBackslash = p;
 			if (p[1] == '\n') {
 				curFile->lineno++;
-				if (p + 2 == curFile->buf_end) {
+				if (p + 2 == buf_end) {
 					line_end = p;
 					*line_end = '\n';
 					p += 2;
@@ -2692,7 +2700,7 @@ ParseRawLine(IFile *curFile, char **out_line, char **out_line_end,
 			}
 			p += 2;
 			line_end = p;
-			assert(p <= curFile->buf_end);
+			assert(p <= buf_end);
 			continue;
 		}
 
@@ -3010,12 +3018,6 @@ ParseLine_ShellCommand(const char *p)
 	}
 }
 
-MAKE_INLINE bool
-IsDirective(const char *dir, size_t dirlen, const char *name)
-{
-	return dirlen == strlen(name) && memcmp(dir, name, dirlen) == 0;
-}
-
 /*
  * See if the line starts with one of the known directives, and if so, handle
  * the directive.
@@ -3024,8 +3026,8 @@ static bool
 ParseDirective(char *line)
 {
 	char *cp = line + 1;
-	const char *dir, *arg;
-	size_t dirlen;
+	const char *arg;
+	Substring dir;
 
 	pp_skip_whitespace(&cp);
 	if (IsInclude(cp, false)) {
@@ -3033,10 +3035,10 @@ ParseDirective(char *line)
 		return true;
 	}
 
-	dir = cp;
+	dir.start = cp;
 	while (ch_isalpha(*cp) || *cp == '-')
 		cp++;
-	dirlen = (size_t)(cp - dir);
+	dir.end = cp;
 
 	if (*cp != '\0' && !ch_isspace(*cp))
 		return false;
@@ -3044,31 +3046,31 @@ ParseDirective(char *line)
 	pp_skip_whitespace(&cp);
 	arg = cp;
 
-	if (IsDirective(dir, dirlen, "undef")) {
-		Var_Undef(cp);
+	if (Substring_Equals(dir, "undef")) {
+		Var_Undef(arg);
 		return true;
-	} else if (IsDirective(dir, dirlen, "export")) {
+	} else if (Substring_Equals(dir, "export")) {
 		Var_Export(VEM_PLAIN, arg);
 		return true;
-	} else if (IsDirective(dir, dirlen, "export-env")) {
+	} else if (Substring_Equals(dir, "export-env")) {
 		Var_Export(VEM_ENV, arg);
 		return true;
-	} else if (IsDirective(dir, dirlen, "export-literal")) {
+	} else if (Substring_Equals(dir, "export-literal")) {
 		Var_Export(VEM_LITERAL, arg);
 		return true;
-	} else if (IsDirective(dir, dirlen, "unexport")) {
+	} else if (Substring_Equals(dir, "unexport")) {
 		Var_UnExport(false, arg);
 		return true;
-	} else if (IsDirective(dir, dirlen, "unexport-env")) {
+	} else if (Substring_Equals(dir, "unexport-env")) {
 		Var_UnExport(true, arg);
 		return true;
-	} else if (IsDirective(dir, dirlen, "info")) {
+	} else if (Substring_Equals(dir, "info")) {
 		ParseMessage(PARSE_INFO, "info", arg);
 		return true;
-	} else if (IsDirective(dir, dirlen, "warning")) {
+	} else if (Substring_Equals(dir, "warning")) {
 		ParseMessage(PARSE_WARNING, "warning", arg);
 		return true;
-	} else if (IsDirective(dir, dirlen, "error")) {
+	} else if (Substring_Equals(dir, "error")) {
 		ParseMessage(PARSE_FATAL, "error", arg);
 		return true;
 	}

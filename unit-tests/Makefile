@@ -1,6 +1,6 @@
-# $Id: Makefile,v 1.160 2021/10/23 21:01:09 sjg Exp $
+# $Id: Makefile,v 1.162 2021/12/07 00:03:11 sjg Exp $
 #
-# $NetBSD: Makefile,v 1.284 2021/10/19 15:59:26 sjg Exp $
+# $NetBSD: Makefile,v 1.286 2021/12/05 15:20:13 rillig Exp $
 #
 # Unit tests for make(1)
 #
@@ -352,6 +352,7 @@ TESTS+=		varmod-indirect
 TESTS+=		varmod-l-name-to-value
 TESTS+=		varmod-localtime
 TESTS+=		varmod-loop
+TESTS+=		varmod-loop-delete
 TESTS+=		varmod-loop-varname
 TESTS+=		varmod-match
 TESTS+=		varmod-match-escape
@@ -436,6 +437,9 @@ TESTS+=		varquote
 # for now at least
 .if ${.SHELL:T} == "ksh"
 BROKEN_TESTS+= sh-flags
+.endif
+.if ${.MAKE.OS:NDarwin} == ""
+BROKEN_TESTS+= shell-ksh
 .endif
 .if ${.MAKE.OS} == "SCO_SV"
 BROKEN_TESTS+= \
@@ -696,7 +700,7 @@ TMPDIR:=	/tmp/uid${.MAKE.UID}
 x!= echo; mkdir -p ${TMPDIR}
 .endif
 
-MAKE_TEST_ENV?=	MALLOC_OPTIONS="JA"	# for jemalloc
+MAKE_TEST_ENV?=	MALLOC_CONF="junk:true"	# for jemalloc
 MAKE_TEST_ENV+= TMPDIR=${TMPDIR}
 
 .if ${.MAKE.OS} == "NetBSD"

@@ -1,3 +1,44 @@
+2021-12-11  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20211212
+
+	* auto.dep.mk: rearrange so that the trivial implementation
+	for recent bmake is more obvious.
+
+2021-12-07  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20211207
+
+	* Ensure guard targets are .NOTMAIN
+
+	* meta.sys.mk: check for nofilemon support when we skip level 0
+
+	* auto.dep.mk: make this usable in meta mode
+	for platforms that cannot use meta.autodep.mk
+
+	* meta2deps.py: avoid confusion if MACHINE and another
+	TARGET_SPEC_VAR have same value.
+	
+2021-11-27  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* dirdeps.mk: when building dirdeps.cache, minimize the amount of
+	data put into env, by stripping ${SRCTOP}/ from each entry.
+	A long sandbox name can double the amount of memory consumed and
+	in extreme cases cause failure.
+	While we are at it, strip ${SRCTOP}/ from a lot of the debug output.
+
+2021-11-11  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* install-mk (MK_VERSION): 20211111
+
+	* meta.stage.mk (LN_CP_SCRIPT): if staging to NFS cp -p can fail
+	so fallback to cp if necessary.
+
+2021-10-30  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* man.mk (CMT2DOC): use cmt2doc.py rather than the 30 year
+	old cmt2doc.pl
+
 2021-10-24  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* meta.stage.mk: stage_as_and_symlink use ${STAGE_LINK_AS_$f:U$f}

@@ -1,4 +1,4 @@
-# $Id: compiler.mk,v 1.9 2021/10/22 06:35:21 sjg Exp $
+# $Id: compiler.mk,v 1.10 2021/12/08 05:56:50 sjg Exp $
 #
 #	@(#) Copyright (c) 2019, Simon J. Gerraty
 #
@@ -14,7 +14,7 @@
 #
 
 .if !target(__${.PARSEFILE}__)
-__${.PARSEFILE}__:
+__${.PARSEFILE}__: .NOTMAIN
 
 .if ${MACHINE} == "common"
 COMPILER_TYPE = none

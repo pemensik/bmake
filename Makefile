@@ -1,4 +1,4 @@
-#	$Id: Makefile,v 1.116 2021/10/18 00:49:13 sjg Exp $
+#	$Id: Makefile,v 1.117 2021/12/04 18:51:30 sjg Exp $
 
 PROG=	bmake
 
@@ -8,7 +8,6 @@ SRCS= \
 	compat.c \
 	cond.c \
 	dir.c \
-	enum.c \
 	for.c \
 	hash.c \
 	job.c \

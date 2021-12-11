@@ -1,4 +1,4 @@
-# $Id: meta.stage.mk,v 1.62 2021/10/25 18:23:01 sjg Exp $
+# $Id: meta.stage.mk,v 1.64 2021/12/08 05:56:50 sjg Exp $
 #
 #	@(#) Copyright (c) 2011-2017, Simon J. Gerraty
 #
@@ -66,7 +66,7 @@ GENDIRDEPS_FILTER += Nnot-empty-is-important \
 LN_CP_SCRIPT = LnCp() { \
   rm -f $$2 2> /dev/null; \
   { [ -z "$$mode" ] && ${LN:Uln} $$1 $$2 2> /dev/null; } || \
-  cp -p $$1 $$2; }
+  cp -p $$1 $$2 2> /dev/null || cp $$1 $$2; }
 
 # a staging conflict should cause an error
 # a warning is handy when bootstapping different options.
@@ -307,7 +307,7 @@ CLEANFILES += ${STAGE_TARGETS} stage_incs stage_includes
 
 # this lot also only makes sense the first time...
 .if !target(__${.PARSEFILE}__)
-__${.PARSEFILE}__:
+__${.PARSEFILE}__: .NOTMAIN
 
 # stage_*links usually needs to follow any others.
 # for non-jobs mode the order here matters

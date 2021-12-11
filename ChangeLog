@@ -1,3 +1,37 @@
+2021-12-07  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20211207
+	Merge with NetBSD make, pick up
+	o inline HashIter_Init
+	o parse.c: inline common subexpression in ParseRawLine
+	o var.c: merge branches for modifiers ':D' and ':U'
+	extract common code into Expr_Words
+	extract common code into Expr_Str
+	move low-level implementation details out of Var_Parse
+	
+2021-12-06  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20211206
+	Merge with NetBSD make, pick up
+	o add unit-tests/varmod-loop-delete
+	o for.c: inline Str_Words - reduce memory allocation
+	o parse.c: do not try to expand fixed variable names
+	only allocate the name of an included file if necessary
+	clean up ParseInclude
+	o var.c: fix use-after-free in modifier ':@'
+	save a memory allocation in each modifier ':O' and ':u'
+	save a memory allocation in the modifier ':[...]'
+	in UnexportVars, replace Str_Words with Substring_Words to
+	reduce allocations and copying.
+	
+2021-12-04  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20211204
+	Merge with NetBSD make, pick up
+	o flesh out a number of tests
+	o replace enums with bitfields, this simplifies a lot of code.
+	o var.c: refactor ParseModifierPartSubst
+
 2021-10-24  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20211024

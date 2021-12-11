@@ -1,6 +1,6 @@
 #
 # RCSid:
-#	$Id: autodep.mk,v 1.39 2021/10/22 06:36:21 sjg Exp $
+#	$Id: autodep.mk,v 1.40 2021/12/08 05:56:50 sjg Exp $
 #
 #	@(#) Copyright (c) 1999-2010, Simon J. Gerraty
 #
@@ -20,7 +20,7 @@
 # dependencies are normally updated as part of compilation.
 
 .if !target(__${.PARSEFILE}__)
-__${.PARSEFILE}__:
+__${.PARSEFILE}__: .NOTMAIN
 
 DEPENDFILE?= .depend
 .for d in ${DEPENDFILE:N.depend}

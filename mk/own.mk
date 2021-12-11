@@ -1,7 +1,7 @@
-# $Id: own.mk,v 1.43 2021/10/16 21:00:17 sjg Exp $
+# $Id: own.mk,v 1.44 2021/12/08 05:56:50 sjg Exp $
 
 .if !target(__${.PARSEFILE}__)
-__${.PARSEFILE}__:
+__${.PARSEFILE}__: .NOTMAIN
 
 .if !target(__init.mk__)
 .include "init.mk"

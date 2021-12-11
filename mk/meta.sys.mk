@@ -1,4 +1,4 @@
-# $Id: meta.sys.mk,v 1.38 2020/08/19 17:51:53 sjg Exp $
+# $Id: meta.sys.mk,v 1.41 2021/12/08 07:29:43 sjg Exp $
 
 #
 #	@(#) Copyright (c) 2010-2020, Simon J. Gerraty
@@ -30,9 +30,15 @@ SYS_MK_DIR := ${_PARSEDIR}
 .endif
 
 META_MODE += meta verbose
+.if ${MAKE_VERSION:U0} > 20130323 && empty(.MAKE.PATH_FILEMON)
+# we do not support filemon
+META_MODE += nofilemon
+MKDEP_MK ?= auto.dep.mk
+.endif
+
 .MAKE.MODE ?= ${META_MODE}
 
-.if ${.MAKE.LEVEL} == 0
+.if empty(UPDATE_DEPENDFILE)
 _make_mode := ${.MAKE.MODE} ${META_MODE}
 .if ${_make_mode:M*read*} != "" || ${_make_mode:M*nofilemon*} != ""
 # tell everyone we are not updating Makefile.depend*
@@ -106,7 +112,7 @@ _metaError: .NOMETA .NOTMAIN
 
 # Are we, after all, in meta mode?
 .if ${.MAKE.MODE:Uno:Mmeta*} != ""
-MKDEP_MK = meta.autodep.mk
+MKDEP_MK ?= meta.autodep.mk
 
 .if ${.MAKE.MAKEFILES:M*sys.dependfile.mk} == ""
 # this does all the smarts of setting .MAKE.DEPENDFILE

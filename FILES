@@ -24,8 +24,6 @@ configure.in
 dir.c
 dir.h
 dirname.c
-enum.c
-enum.h
 filemon/filemon.h
 filemon/filemon_dev.c
 filemon/filemon_ktrace.c
@@ -689,6 +687,8 @@ unit-tests/varmod-l-name-to-value.exp
 unit-tests/varmod-l-name-to-value.mk
 unit-tests/varmod-localtime.exp
 unit-tests/varmod-localtime.mk
+unit-tests/varmod-loop-delete.exp
+unit-tests/varmod-loop-delete.mk
 unit-tests/varmod-loop-varname.exp
 unit-tests/varmod-loop-varname.mk
 unit-tests/varmod-loop.exp

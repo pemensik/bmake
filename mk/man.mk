@@ -1,4 +1,4 @@
-# $Id: man.mk,v 1.24 2021/10/05 06:18:22 sjg Exp $
+# $Id: man.mk,v 1.25 2021/10/31 03:03:14 sjg Exp $
 
 .if !target(__${.PARSEFILE}__)
 __${.PARSEFILE}__: .NOTMAIN
@@ -38,8 +38,8 @@ ${MAN_SUFFIXES:@s@$s${s:S,.,.cat,}@}:
 .if defined(MAN) && !empty(MAN)
 
 .if ${MK_CMT2DOC} == "yes"
-# use cmt2doc.pl to extract manpages from source
-CMT2DOC?= cmt2doc.pl
+# use cmt2doc.py to extract manpages from source
+CMT2DOC?= cmt2doc.py
 CMT2DOC_OPTS?=  ${CMT2DOC_ORGOPT} -pmS${.TARGET:E}
 CMT2DOC_SUFFIXES+= .c .h .sh .pl .py
 
