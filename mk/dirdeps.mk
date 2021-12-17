@@ -1,4 +1,4 @@
-# $Id: dirdeps.mk,v 1.146 2021/11/29 18:54:58 sjg Exp $
+# $Id: dirdeps.mk,v 1.147 2021/12/14 02:09:53 sjg Exp $
 
 # Copyright (c) 2010-2021, Simon J. Gerraty
 # Copyright (c) 2010-2018, Juniper Networks, Inc.
@@ -661,11 +661,10 @@ DEP_DIRDEPS_FILTER = U
 # this is what we start with
 __depdirs := ${DIRDEPS:${NSkipDir}:${DEP_DIRDEPS_FILTER:ts:}:C,//+,/,g:O:u:@d@${SRCTOP}/$d@}
 
-# some entries may be qualified with .<machine>
-# the :M*/*/*.* just tries to limit the dirs we check to likely ones.
-# the ${d:E:M*/*} ensures we don't consider junos/usr.sbin/mgd
-__qual_depdirs := ${__depdirs:M*/*/*.*:@d@${exists($d):?:${"${d:E:M*/*}":?:${exists(${d:R}):?$d:}}}@}
-__unqual_depdirs := ${__depdirs:${__qual_depdirs:Uno:${M_ListToSkip}}}
+# some entries may be qualified with .<machine> or .<target_spec>
+# we can tell the unqualified ones easily - because they exist
+__unqual_depdirs := ${__depdirs:@d@${exists($d):?$d:}@}
+__qual_depdirs := ${__depdirs:${__unqual_depdirs:Uno:${M_ListToSkip}}}
 
 .if ${DEP_RELDIR} == ${_DEP_RELDIR}
 # if it was called out - we likely need it.

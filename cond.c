@@ -1,4 +1,4 @@
-/*	$NetBSD: cond.c,v 1.281 2021/12/05 10:11:31 rillig Exp $	*/
+/*	$NetBSD: cond.c,v 1.302 2021/12/12 09:36:00 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990 The Regents of the University of California.
@@ -95,14 +95,12 @@
 #include "dir.h"
 
 /*	"@(#)cond.c	8.2 (Berkeley) 1/2/94"	*/
-MAKE_RCSID("$NetBSD: cond.c,v 1.281 2021/12/05 10:11:31 rillig Exp $");
+MAKE_RCSID("$NetBSD: cond.c,v 1.302 2021/12/12 09:36:00 rillig Exp $");
 
 /*
  * The parsing of conditional expressions is based on this grammar:
- *	Or -> And
- *	Or -> Or '||' And
- *	And -> Term
- *	And -> And '&&' Term
+ *	Or -> And ('||' And)*
+ *	And -> Term ('&&' Term)*
  *	Term -> Function '(' Argument ')'
  *	Term -> Leaf Operator Leaf
  *	Term -> Leaf
@@ -151,7 +149,7 @@ typedef struct CondParser {
 	bool plain;
 
 	/* The function to apply on unquoted bare words. */
-	bool (*evalBare)(size_t, const char *);
+	bool (*evalBare)(const char *);
 	bool negateEvalBare;
 
 	/*
@@ -200,16 +198,6 @@ ToToken(bool cond)
 	return cond ? TOK_TRUE : TOK_FALSE;
 }
 
-/* Push back the most recent token read. We only need one level of this. */
-static void
-CondParser_PushBack(CondParser *par, Token t)
-{
-	assert(par->curr == TOK_NONE);
-	assert(t != TOK_NONE);
-
-	par->curr = t;
-}
-
 static void
 CondParser_SkipWhitespace(CondParser *par)
 {
@@ -217,7 +205,9 @@ CondParser_SkipWhitespace(CondParser *par)
 }
 
 /*
- * Parse the argument of a built-in function.
+ * Parse a single word, taking into account balanced parentheses as well as
+ * embedded expressions.  Used for the argument of a built-in function as
+ * well as for bare words, which are then passed to the default function.
  *
  * Arguments:
  *	*pp initially points at the '(',
@@ -226,12 +216,12 @@ CondParser_SkipWhitespace(CondParser *par)
  *	*out_arg receives the argument as string.
  *
  *	func says whether the argument belongs to an actual function, or
- *	whether the parsed argument is passed to the default function.
+ *	NULL when parsing a bare word.
  *
- * Return the length of the argument, or 0 on error.
+ * Return the length of the argument, or an ambiguous 0 on error.
  */
 static size_t
-ParseFuncArg(CondParser *par, const char **pp, bool doEval, const char *func,
+ParseWord(CondParser *par, const char **pp, bool doEval, const char *func,
 	     char **out_arg)
 {
 	const char *p = *pp;
@@ -241,11 +231,6 @@ ParseFuncArg(CondParser *par, const char **pp, bool doEval, const char *func,
 
 	if (func != NULL)
 		p++;		/* Skip opening '(' - verified by caller */
-
-	if (*p == '\0') {
-		*out_arg = NULL; /* Missing closing parenthesis: */
-		return 0;	/* .if defined( */
-	}
 
 	cpp_skip_hspace(&p);
 
@@ -302,9 +287,8 @@ ParseFuncArg(CondParser *par, const char **pp, bool doEval, const char *func,
 }
 
 /* Test whether the given variable is defined. */
-/*ARGSUSED*/
 static bool
-FuncDefined(size_t argLen MAKE_ATTR_UNUSED, const char *arg)
+FuncDefined(const char *arg)
 {
 	FStr value = Var_Value(SCOPE_CMDLINE, arg);
 	bool result = value.str != NULL;
@@ -313,9 +297,8 @@ FuncDefined(size_t argLen MAKE_ATTR_UNUSED, const char *arg)
 }
 
 /* See if the given target is requested to be made. */
-/*ARGSUSED*/
 static bool
-FuncMake(size_t argLen MAKE_ATTR_UNUSED, const char *arg)
+FuncMake(const char *arg)
 {
 	StringListNode *ln;
 
@@ -326,9 +309,8 @@ FuncMake(size_t argLen MAKE_ATTR_UNUSED, const char *arg)
 }
 
 /* See if the given file exists. */
-/*ARGSUSED*/
 static bool
-FuncExists(size_t argLen MAKE_ATTR_UNUSED, const char *arg)
+FuncExists(const char *arg)
 {
 	bool result;
 	char *path;
@@ -342,9 +324,8 @@ FuncExists(size_t argLen MAKE_ATTR_UNUSED, const char *arg)
 }
 
 /* See if the given node exists and is an actual target. */
-/*ARGSUSED*/
 static bool
-FuncTarget(size_t argLen MAKE_ATTR_UNUSED, const char *arg)
+FuncTarget(const char *arg)
 {
 	GNode *gn = Targ_FindNode(arg);
 	return gn != NULL && GNode_IsTarget(gn);
@@ -354,9 +335,8 @@ FuncTarget(size_t argLen MAKE_ATTR_UNUSED, const char *arg)
  * See if the given node exists and is an actual target with commands
  * associated with it.
  */
-/*ARGSUSED*/
 static bool
-FuncCommands(size_t argLen MAKE_ATTR_UNUSED, const char *arg)
+FuncCommands(const char *arg)
 {
 	GNode *gn = Targ_FindNode(arg);
 	return gn != NULL && GNode_IsTarget(gn) && !Lst_IsEmpty(&gn->commands);
@@ -543,15 +523,16 @@ CondParser_Leaf(CondParser *par, bool doEval, bool unquotedOK,
 	}
 got_str:
 	str = FStr_InitOwn(buf.data);
+	buf.data = NULL;
 cleanup:
-	Buf_DoneData(&buf);	/* XXX: memory leak on failure? */
+	Buf_Done(&buf);
 	*out_str = str;
 }
 
 static bool
-EvalBare(const CondParser *par, const char *arg, size_t arglen)
+EvalBare(const CondParser *par, const char *arg)
 {
-	bool res = par->evalBare(arglen, arg);
+	bool res = par->evalBare(arg);
 	return par->negateEvalBare ? !res : res;
 }
 
@@ -575,11 +556,14 @@ EvalNotEmpty(CondParser *par, const char *value, bool quoted)
 	/* For .if ${...}, check for non-empty string.  This is different from
 	 * the evaluation function from that .if variant, which would test
 	 * whether a variable of the given name were defined. */
-	/* XXX: Whitespace should count as empty, just as in ParseEmptyArg. */
+	/*
+	 * XXX: Whitespace should count as empty, just as in
+	 * CondParser_FuncCallEmpty.
+	 */
 	if (par->plain)
 		return value[0] != '\0';
 
-	return EvalBare(par, value, strlen(value));
+	return EvalBare(par, value);
 }
 
 /* Evaluate a numerical comparison, such as in ".if ${VAR} >= 9". */
@@ -727,50 +711,37 @@ done_lhs:
  * The argument to empty() is a variable name, optionally followed by
  * variable modifiers.
  */
-/*ARGSUSED*/
-static size_t
-ParseEmptyArg(CondParser *par MAKE_ATTR_UNUSED, const char **pp,
-	      bool doEval, const char *func MAKE_ATTR_UNUSED,
-	      char **out_arg)
+static bool
+CondParser_FuncCallEmpty(CondParser *par, bool doEval, Token *out_token)
 {
+	const char *cp = par->p;
+	Token tok;
 	FStr val;
-	size_t magic_res;
 
-	/* We do all the work here and return the result as the length */
-	*out_arg = NULL;
+	if (!is_token(cp, "empty", 5))
+		return false;
+	cp += 5;
 
-	(*pp)--;		/* Make (*pp)[1] point to the '('. */
-	(void)Var_Parse(pp, SCOPE_CMDLINE,
+	cpp_skip_whitespace(&cp);
+	if (*cp != '(')
+		return false;
+
+	cp--;			/* Make cp[1] point to the '('. */
+	(void)Var_Parse(&cp, SCOPE_CMDLINE,
 	    doEval ? VARE_WANTRES : VARE_PARSE_ONLY, &val);
 	/* TODO: handle errors */
-	/* If successful, *pp points beyond the closing ')' now. */
 
-	if (val.str == var_Error) {
-		FStr_Done(&val);
-		return (size_t)-1;
+	if (val.str == var_Error)
+		tok = TOK_ERROR;
+	else {
+		cpp_skip_whitespace(&val.str);
+		tok = val.str[0] != '\0' && doEval ? TOK_FALSE : TOK_TRUE;
 	}
 
-	/*
-	 * A variable is empty when it just contains spaces...
-	 * 4/15/92, christos
-	 */
-	cpp_skip_whitespace(&val.str);
-
-	/*
-	 * For consistency with the other functions we can't generate the
-	 * true/false here.
-	 */
-	magic_res = val.str[0] != '\0' ? 2 : 1;
 	FStr_Done(&val);
-	return magic_res;
-}
-
-/*ARGSUSED*/
-static bool
-FuncEmpty(size_t arglen, const char *arg MAKE_ATTR_UNUSED)
-{
-	/* Magic values ahead, see ParseEmptyArg. */
-	return arglen == 1;
+	*out_token = tok;
+	par->p = cp;
+	return true;
 }
 
 /* Parse a function call expression, such as 'defined(${file})'. */
@@ -780,16 +751,13 @@ CondParser_FuncCall(CondParser *par, bool doEval, Token *out_token)
 	static const struct fn_def {
 		const char fn_name[9];
 		unsigned char fn_name_len;
-		size_t (*fn_parse)(CondParser *, const char **, bool,
-				   const char *, char **);
-		bool (*fn_eval)(size_t, const char *);
+		bool (*fn_eval)(const char *);
 	} fns[] = {
-		{ "defined",  7, ParseFuncArg,  FuncDefined },
-		{ "make",     4, ParseFuncArg,  FuncMake },
-		{ "exists",   6, ParseFuncArg,  FuncExists },
-		{ "empty",    5, ParseEmptyArg, FuncEmpty },
-		{ "target",   6, ParseFuncArg,  FuncTarget },
-		{ "commands", 8, ParseFuncArg,  FuncCommands }
+		{ "defined",  7, FuncDefined },
+		{ "make",     4, FuncMake },
+		{ "exists",   6, FuncExists },
+		{ "target",   6, FuncTarget },
+		{ "commands", 8, FuncCommands }
 	};
 	const struct fn_def *fn;
 	char *arg = NULL;
@@ -806,30 +774,26 @@ CondParser_FuncCall(CondParser *par, bool doEval, Token *out_token)
 	if (*cp != '(')
 		return false;
 
-	arglen = fn->fn_parse(par, &cp, doEval, fn->fn_name, &arg);
-	if (arglen == 0 || arglen == (size_t)-1) {
-		par->p = cp;
-		*out_token = arglen == 0 ? TOK_FALSE : TOK_ERROR;
-		return true;
-	}
+	arglen = ParseWord(par, &cp, doEval, fn->fn_name, &arg);
+	*out_token = ToToken(arglen != 0 && (!doEval || fn->fn_eval(arg)));
 
-	/* Evaluate the argument using the required function. */
-	*out_token = ToToken(!doEval || fn->fn_eval(arglen, arg));
 	free(arg);
 	par->p = cp;
 	return true;
 }
 
 /*
- * Parse a comparison such as '${VAR} == "value"', or a simple leaf without
+ * Parse a comparison that neither starts with '"' nor '$', such as the
+ * unusual 'bare == right' or '3 == ${VAR}', or a simple leaf without
  * operator, which is a number, a variable expression or a string literal.
+ *
+ * TODO: Can this be merged into CondParser_Comparison?
  */
 static Token
 CondParser_ComparisonOrLeaf(CondParser *par, bool doEval)
 {
 	Token t;
 	char *arg = NULL;
-	size_t arglen;
 	const char *cp;
 	const char *cp1;
 
@@ -850,7 +814,7 @@ CondParser_ComparisonOrLeaf(CondParser *par, bool doEval)
 	 * XXX: Is it possible to have a variable expression evaluated twice
 	 *  at this point?
 	 */
-	arglen = ParseFuncArg(par, &cp, doEval, NULL, &arg);
+	(void)ParseWord(par, &cp, doEval, NULL, &arg);
 	cp1 = cp;
 	cpp_skip_whitespace(&cp1);
 	if (*cp1 == '=' || *cp1 == '!' || *cp1 == '<' || *cp1 == '>')
@@ -863,7 +827,7 @@ CondParser_ComparisonOrLeaf(CondParser *par, bool doEval)
 	 * after .if must have been taken literally, so the argument cannot
 	 * be empty - even if it contained a variable expansion.
 	 */
-	t = ToToken(!doEval || EvalBare(par, arg, arglen));
+	t = ToToken(!doEval || EvalBare(par, arg));
 	free(arg);
 	return t;
 }
@@ -929,10 +893,28 @@ CondParser_Token(CondParser *par, bool doEval)
 		return CondParser_Comparison(par, doEval);
 
 	default:
+		if (CondParser_FuncCallEmpty(par, doEval, &t))
+			return t;
 		if (CondParser_FuncCall(par, doEval, &t))
 			return t;
 		return CondParser_ComparisonOrLeaf(par, doEval);
 	}
+}
+
+/* Skip the next token if it equals t. */
+static bool
+CondParser_Skip(CondParser *par, Token t)
+{
+	Token actual;
+
+	actual = CondParser_Token(par, false);
+	if (actual == t)
+		return true;
+
+	assert(par->curr == TOK_NONE);
+	assert(actual != TOK_NONE);
+	par->curr = actual;
+	return false;
 }
 
 /*
@@ -975,56 +957,44 @@ CondParser_Term(CondParser *par, bool doEval)
 }
 
 /*
- * And -> Term
- * And -> And '&&' Term
+ * And -> Term ('&&' Term)*
  */
 static CondResult
 CondParser_And(CondParser *par, bool doEval)
 {
-	CondResult res;
-	Token op;
+	CondResult res, rhs;
 
-	res = CondParser_Term(par, doEval);
-	if (res == CR_ERROR)
-		return CR_ERROR;
-
-	op = CondParser_Token(par, doEval);
-	if (op == TOK_AND) {
-		if (res == CR_TRUE)
-			return CondParser_And(par, doEval);
-		if (CondParser_And(par, false) == CR_ERROR)
+	res = CR_TRUE;
+	do {
+		if ((rhs = CondParser_Term(par, doEval)) == CR_ERROR)
 			return CR_ERROR;
-		return res;
-	}
+		if (rhs == CR_FALSE) {
+			res = CR_FALSE;
+			doEval = false;
+		}
+	} while (CondParser_Skip(par, TOK_AND));
 
-	CondParser_PushBack(par, op);
 	return res;
 }
 
 /*
- * Or -> And
- * Or -> Or '||' And
+ * Or -> And ('||' And)*
  */
 static CondResult
 CondParser_Or(CondParser *par, bool doEval)
 {
-	CondResult res;
-	Token op;
+	CondResult res, rhs;
 
-	res = CondParser_And(par, doEval);
-	if (res == CR_ERROR)
-		return CR_ERROR;
-
-	op = CondParser_Token(par, doEval);
-	if (op == TOK_OR) {
-		if (res == CR_FALSE)
-			return CondParser_Or(par, doEval);
-		if (CondParser_Or(par, false) == CR_ERROR)
+	res = CR_FALSE;
+	do {
+		if ((rhs = CondParser_And(par, doEval)) == CR_ERROR)
 			return CR_ERROR;
-		return res;
-	}
+		if (rhs == CR_TRUE) {
+			res = CR_TRUE;
+			doEval = false;
+		}
+	} while (CondParser_Skip(par, TOK_OR));
 
-	CondParser_PushBack(par, op);
 	return res;
 }
 
@@ -1059,7 +1029,7 @@ CondParser_Eval(CondParser *par, bool *out_value)
  */
 static CondEvalResult
 CondEvalExpression(const char *cond, bool *out_value, bool plain,
-		   bool (*evalBare)(size_t, const char *), bool negate,
+		   bool (*evalBare)(const char *), bool negate,
 		   bool eprint, bool leftUnquotedOK)
 {
 	CondParser par;
@@ -1103,7 +1073,7 @@ IsEndif(const char *p)
 
 static bool
 DetermineKindOfConditional(const char **pp, bool *out_plain,
-			   bool (**out_evalBare)(size_t, const char *),
+			   bool (**out_evalBare)(const char *),
 			   bool *out_negate)
 {
 	const char *p = *pp;
@@ -1192,7 +1162,7 @@ Cond_EvalLine(const char *line)
 	static unsigned int cond_states_cap = 128;
 
 	bool plain;
-	bool (*evalBare)(size_t, const char *);
+	bool (*evalBare)(const char *);
 	bool negate;
 	bool isElif;
 	bool value;
@@ -1211,7 +1181,7 @@ Cond_EvalLine(const char *line)
 	if (IsEndif(p)) {	/* It is an '.endif'. */
 		if (p[5] != '\0') {
 			Parse_Error(PARSE_FATAL,
-			    "The .endif directive does not take arguments.");
+			    "The .endif directive does not take arguments");
 		}
 
 		if (cond_depth == cond_min_depth) {
@@ -1242,8 +1212,8 @@ Cond_EvalLine(const char *line)
 
 			if (p[2] != '\0')
 				Parse_Error(PARSE_FATAL,
-					    "The .else directive "
-					    "does not take arguments.");
+				    "The .else directive "
+				    "does not take arguments");
 
 			if (cond_depth == cond_min_depth) {
 				Parse_Error(PARSE_FATAL, "if-less else");

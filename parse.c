@@ -1,4 +1,4 @@
-/*	$NetBSD: parse.c,v 1.571 2021/12/07 23:56:06 rillig Exp $	*/
+/*	$NetBSD: parse.c,v 1.574 2021/12/12 15:44:41 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -124,7 +124,7 @@
 #include "pathnames.h"
 
 /*	"@(#)parse.c	8.3 (Berkeley) 3/19/94"	*/
-MAKE_RCSID("$NetBSD: parse.c,v 1.571 2021/12/07 23:56:06 rillig Exp $");
+MAKE_RCSID("$NetBSD: parse.c,v 1.574 2021/12/12 15:44:41 rillig Exp $");
 
 /* types and constants */
 
@@ -333,8 +333,6 @@ static const struct {
 /* file loader */
 
 struct loadedfile {
-	/* XXX: What is the lifetime of this path? Who manages the memory? */
-	const char *path;	/* name, for error reports */
 	char *buf;		/* contents buffer */
 	size_t len;		/* length of contents */
 	bool used;		/* XXX: have we used the data yet */
@@ -342,12 +340,11 @@ struct loadedfile {
 
 /* XXX: What is the lifetime of the path? Who manages the memory? */
 static struct loadedfile *
-loadedfile_create(const char *path, char *buf, size_t buflen)
+loadedfile_create(char *buf, size_t buflen)
 {
 	struct loadedfile *lf;
 
 	lf = bmake_malloc(sizeof *lf);
-	lf->path = path == NULL ? "(stdin)" : path;
 	lf->buf = buf;
 	lf->len = buflen;
 	lf->used = false;
@@ -472,8 +469,7 @@ loadfile(const char *path, int fd)
 		close(fd);
 
 	{
-		struct loadedfile *lf = loadedfile_create(path,
-		    buf.data, buf.len);
+		struct loadedfile *lf = loadedfile_create(buf.data, buf.len);
 		Buf_DoneData(&buf);
 		return lf;
 	}
@@ -2134,7 +2130,7 @@ Parse_AddIncludeDir(const char *dir)
 /*
  * Handle one of the .[-ds]include directives by remembering the current file
  * and pushing the included file on the stack.  After the included file has
- * finished, parsing continues with the including file; see Parse_SetInput
+ * finished, parsing continues with the including file; see Parse_PushInput
  * and ParseEOF.
  *
  * System includes are looked up in sysIncPath, any other includes are looked
@@ -2241,10 +2237,11 @@ IncludeFile(const char *file, bool isSystem, bool depinc, bool silent)
 	lf = loadfile(fullname, fd);
 
 	/* Start reading from this file next */
-	Parse_SetInput(fullname, 0, -1, loadedfile_readMore, lf);
+	Parse_PushInput(fullname, 0, -1, loadedfile_readMore, lf);
 	CurFile()->lf = lf;
 	if (depinc)
 		doing_depend = depinc;	/* only turn it on */
+	/* TODO: consider free(fullname); */
 }
 
 /*
@@ -2422,7 +2419,7 @@ ParseTrackInput(const char *name)
  * The given file is added to the includes stack.
  */
 void
-Parse_SetInput(const char *name, int lineno, int fd,
+Parse_PushInput(const char *name, int lineno, int fd,
 	       ReadMoreProc readMore, void *readMoreArg)
 {
 	IFile *curFile;
@@ -2435,7 +2432,7 @@ Parse_SetInput(const char *name, int lineno, int fd,
 	else
 		ParseTrackInput(name);
 
-	DEBUG3(PARSE, "Parse_SetInput: %s %s, line %d\n",
+	DEBUG3(PARSE, "Parse_PushInput: %s %s, line %d\n",
 	    readMore == loadedfile_readMore ? "file" : ".for loop in",
 	    name, lineno);
 
@@ -2910,7 +2907,7 @@ ParseForLoop(const char *line)
 		line = ParseGetLine(GLM_FOR_BODY);
 		if (line == NULL) {
 			Parse_Error(PARSE_FATAL,
-			    "Unexpected end of file in for loop.");
+			    "Unexpected end of file in .for loop");
 			break;
 		}
 	} while (For_Accum(line));
@@ -3251,7 +3248,7 @@ Parse_File(const char *name, int fd)
 	if (name == NULL)
 		name = "(stdin)";
 
-	Parse_SetInput(name, 0, -1, loadedfile_readMore, lf);
+	Parse_PushInput(name, 0, -1, loadedfile_readMore, lf);
 	CurFile()->lf = lf;
 
 	do {

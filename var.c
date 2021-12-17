@@ -1,4 +1,4 @@
-/*	$NetBSD: var.c,v 1.968 2021/12/07 21:47:21 rillig Exp $	*/
+/*	$NetBSD: var.c,v 1.973 2021/12/12 20:45:48 sjg Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -148,7 +148,7 @@
 #include "metachar.h"
 
 /*	"@(#)var.c	8.3 (Berkeley) 3/19/94" */
-MAKE_RCSID("$NetBSD: var.c,v 1.968 2021/12/07 21:47:21 rillig Exp $");
+MAKE_RCSID("$NetBSD: var.c,v 1.973 2021/12/12 20:45:48 sjg Exp $");
 
 /*
  * Variables are defined using one of the VAR=value assignments.  Their
@@ -506,7 +506,7 @@ Var_Delete(GNode *scope, const char *varname)
 	v = he->value;
 	if (v->inUse) {
 		Parse_Error(PARSE_FATAL,
-		    "Cannot delete variable \"%s\" while it is used.",
+		    "Cannot delete variable \"%s\" while it is used",
 		    v->name.str);
 		return;
 	}
@@ -984,6 +984,12 @@ Var_SetWithFlags(GNode *scope, const char *name, const char *val,
 			 * See ExistsInCmdline.
 			 */
 			Var_Delete(SCOPE_GLOBAL, name);
+		}
+		if (strcmp(name, ".SUFFIXES") == 0) {
+			/* special: treat as readOnly */
+			DEBUG3(VAR, "%s: %s = %s ignored (read-only)\n",
+			    scope->name, name, val);
+			return;
 		}
 		v = VarAdd(name, val, scope, flags);
 	} else {
@@ -2457,7 +2463,7 @@ ApplyModifier_Loop(const char **pp, ModChain *ch)
 	if (strchr(args.var, '$') != NULL) {
 		Parse_Error(PARSE_FATAL,
 		    "In the :@ modifier of \"%s\", the variable name \"%s\" "
-		    "must not contain a dollar.",
+		    "must not contain a dollar",
 		    expr->name, args.var);
 		return AMR_CLEANUP;
 	}
@@ -2595,7 +2601,7 @@ ApplyModifier_Gmtime(const char **pp, ModChain *ch)
 		const char *p = mod + 7;
 		if (!TryParseTime(&p, &utc)) {
 			Parse_Error(PARSE_FATAL,
-			    "Invalid time value: %s", mod + 7);
+			    "Invalid time value at \"%s\"", mod + 7);
 			return AMR_CLEANUP;
 		}
 		*pp = p;
@@ -2627,7 +2633,7 @@ ApplyModifier_Localtime(const char **pp, ModChain *ch)
 		const char *p = mod + 10;
 		if (!TryParseTime(&p, &utc)) {
 			Parse_Error(PARSE_FATAL,
-			    "Invalid time value: %s", mod + 10);
+			    "Invalid time value at \"%s\"", mod + 10);
 			return AMR_CLEANUP;
 		}
 		*pp = p;
@@ -3100,7 +3106,7 @@ ApplyModifier_ToSep(const char **pp, ModChain *ch)
 
 		if (!TryParseChar(&p, base, &ch->sep)) {
 			Parse_Error(PARSE_FATAL,
-			    "Invalid character number: %s", p);
+			    "Invalid character number at \"%s\"", p);
 			return AMR_CLEANUP;
 		}
 		if (!IsDelimiter(*p, ch)) {
@@ -4382,6 +4388,7 @@ ParseVarnameLong(
 )
 {
 	LazyBuf varname;
+	Substring name;
 	Var *v;
 	bool haveModifier;
 	bool dynamic = false;
@@ -4392,13 +4399,13 @@ ParseVarnameLong(
 
 	p += 2;			/* skip "${" or "$(" or "y(" */
 	ParseVarname(&p, startc, endc, scope, emode, &varname);
+	name = LazyBuf_Get(&varname);
 
 	if (*p == ':') {
 		haveModifier = true;
 	} else if (*p == endc) {
 		haveModifier = false;
 	} else {
-		Substring name = LazyBuf_Get(&varname);
 		Parse_Error(PARSE_FATAL, "Unclosed variable \"%.*s\"",
 		    (int)Substring_Length(name), name.start);
 		LazyBuf_Done(&varname);
@@ -4408,14 +4415,18 @@ ParseVarnameLong(
 		return false;
 	}
 
-	v = VarFindSubstring(LazyBuf_Get(&varname), scope, true);
+	v = VarFindSubstring(name, scope, true);
 
 	/* At this point, p points just after the variable name,
 	 * either at ':' or at endc. */
 
 	if (v == NULL) {
-		v = FindLocalLegacyVar(LazyBuf_Get(&varname), scope,
-		    out_true_extraModifiers);
+		if (Substring_Equals(name, ".SUFFIXES"))
+			v = VarNew(Substring_Str(name),
+			    Suff_NamesStr(), false, true);
+		else
+			v = FindLocalLegacyVar(name, scope,
+			    out_true_extraModifiers);
 	}
 
 	if (v == NULL) {
@@ -4423,14 +4434,14 @@ ParseVarnameLong(
 		 * Defer expansion of dynamic variables if they appear in
 		 * non-local scope since they are not defined there.
 		 */
-		dynamic = VarnameIsDynamic(LazyBuf_Get(&varname)) &&
+		dynamic = VarnameIsDynamic(name) &&
 			  (scope == SCOPE_CMDLINE || scope == SCOPE_GLOBAL);
 
 		if (!haveModifier) {
 			p++;	/* skip endc */
 			*out_false_pp = p;
 			*out_false_res = EvalUndefined(dynamic, start, p,
-			    LazyBuf_Get(&varname), emode, out_false_val);
+			    name, emode, out_false_val);
 			return false;
 		}
 
@@ -4532,9 +4543,9 @@ Var_Parse_FastLane(const char **pp, VarEvalMode emode, FStr *out_value)
  *
  * Input:
  *	*pp		The string to parse.
- *			When parsing a condition in ParseEmptyArg, it may also
- *			point to the "y" of "empty(VARNAME:Modifiers)", which
- *			is syntactically the same.
+ *			In CondParser_FuncCallEmpty, it may also point to the
+ *			"y" of "empty(VARNAME:Modifiers)", which is
+ *			syntactically the same.
  *	scope		The scope for finding variables
  *	emode		Controls the exact details of parsing and evaluation
  *

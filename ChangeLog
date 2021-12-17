@@ -1,3 +1,23 @@
+2021-12-15  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* cond.c: fix mem leak in CondParser_Leaf
+
+2021-12-12  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20211212
+	Merge with NetBSD make, pick up
+	o rename Parse_SetInput to Parse_PushInput
+	o remove remove period from end of error messages and warnings
+	to be more consistent
+	o arch.c: use simpler memory management for parsing archive members
+	o cond.c: rework and reduce recursion
+	o for.c: rename some functions to better reflect purpose
+	o suff.c: add Suff_NamesStr to provide .SUFFIXES as a string.
+	o var.c: in parse errors, mark whitespace more clearly
+	inline ParseEmptyArg into CondParser_FuncCallEmpty
+	minimize calls to LazyBuf_Get in ParseVarnameLong
+	treat .SUFFIXES as a read-only variable
+
 2021-12-07  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20211207

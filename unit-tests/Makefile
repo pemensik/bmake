@@ -1,6 +1,6 @@
-# $Id: Makefile,v 1.162 2021/12/07 00:03:11 sjg Exp $
+# $Id: Makefile,v 1.164 2021/12/12 22:50:00 sjg Exp $
 #
-# $NetBSD: Makefile,v 1.286 2021/12/05 15:20:13 rillig Exp $
+# $NetBSD: Makefile,v 1.288 2021/12/12 22:16:48 rillig Exp $
 #
 # Unit tests for make(1)
 #
@@ -419,6 +419,7 @@ TESTS+=		varname-dot-parsedir
 TESTS+=		varname-dot-parsefile
 TESTS+=		varname-dot-path
 TESTS+=		varname-dot-shell
+TESTS+=		varname-dot-suffixes
 TESTS+=		varname-dot-targets
 TESTS+=		varname-empty
 TESTS+=		varname-make
@@ -468,7 +469,6 @@ TESTS:= ${TESTS:${BROKEN_TESTS:S,^,N,:ts:}}
 #	char-0020-space.mk
 #	char-005C-backslash.mk
 #	escape-cond-str.mk
-#	escape-cond-func-arg.mk
 #	escape-cond-func-arg.mk
 #	escape-varmod.mk
 #	escape-varmod-define.mk
@@ -700,7 +700,8 @@ TMPDIR:=	/tmp/uid${.MAKE.UID}
 x!= echo; mkdir -p ${TMPDIR}
 .endif
 
-MAKE_TEST_ENV?=	MALLOC_CONF="junk:true"	# for jemalloc
+MAKE_TEST_ENV=	MALLOC_OPTIONS="JA"	# for jemalloc 100
+MAKE_TEST_ENV+=	MALLOC_CONF="junk:true"	# for jemalloc 510
 MAKE_TEST_ENV+= TMPDIR=${TMPDIR}
 
 .if ${.MAKE.OS} == "NetBSD"

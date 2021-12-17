@@ -1,3 +1,18 @@
+2021-12-12  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* sys.mk: simplify; include meta.sys.mk if MK_META_MODE is yes.
+
+	* meta.sys.mk: do not check for /dev/filemon if .MAKE.PATH_FILEMON
+	is something else.
+
+	* meta.autodep.mk: we can now reference ${.SUFFIXES}
+
+	* meta2deps.py: derive a list of dirdep extensions from
+	TARGET_SPEC to trim from dirdeps.
+
+	* dirdeps.mk: flip the computation of qualified vs unqualified
+	dirdeps - it is much simpler to check for unqualified first.
+
 2021-12-11  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* install-mk (MK_VERSION): 20211212

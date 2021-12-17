@@ -823,6 +823,8 @@ unit-tests/varname-dot-path.exp
 unit-tests/varname-dot-path.mk
 unit-tests/varname-dot-shell.exp
 unit-tests/varname-dot-shell.mk
+unit-tests/varname-dot-suffixes.exp
+unit-tests/varname-dot-suffixes.mk
 unit-tests/varname-dot-targets.exp
 unit-tests/varname-dot-targets.mk
 unit-tests/varname-empty.exp

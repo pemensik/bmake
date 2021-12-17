@@ -1,4 +1,4 @@
-/*	$NetBSD: arch.c,v 1.204 2021/11/28 19:51:06 rillig Exp $	*/
+/*	$NetBSD: arch.c,v 1.205 2021/12/12 22:41:47 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -147,7 +147,7 @@ struct ar_hdr {
 #include "dir.h"
 
 /*	"@(#)arch.c	8.2 (Berkeley) 1/2/94"	*/
-MAKE_RCSID("$NetBSD: arch.c,v 1.204 2021/11/28 19:51:06 rillig Exp $");
+MAKE_RCSID("$NetBSD: arch.c,v 1.205 2021/12/12 22:41:47 rillig Exp $");
 
 typedef struct List ArchList;
 typedef struct ListNode ArchListNode;
@@ -250,7 +250,7 @@ Arch_ParseArchive(char **pp, GNodeList *gns, GNode *scope)
 	char *cp;		/* Pointer into line */
 	GNode *gn;		/* New node */
 	MFStr libName;		/* Library-part of specification */
-	char *memName;		/* Member-part of specification */
+	FStr mem;		/* Member-part of specification */
 	char saveChar;		/* Ending delimiter of member-name */
 	bool expandLibName;	/* Whether the parsed libName contains
 				 * variable expressions that need to be
@@ -301,7 +301,7 @@ Arch_ParseArchive(char **pp, GNodeList *gns, GNode *scope)
 
 		pp_skip_whitespace(&cp);
 
-		memName = cp;
+		mem = FStr_InitRefer(cp);
 		while (*cp != '\0' && *cp != ')' && !ch_isspace(*cp)) {
 			if (*cp == '$') {
 				/* Expand nested variable expressions. */
@@ -342,7 +342,7 @@ Arch_ParseArchive(char **pp, GNodeList *gns, GNode *scope)
 		/*
 		 * If we didn't move anywhere, we must be done
 		 */
-		if (cp == memName)
+		if (cp == mem.str)
 			break;
 
 		saveChar = *cp;
@@ -363,22 +363,22 @@ Arch_ParseArchive(char **pp, GNodeList *gns, GNode *scope)
 		 */
 		if (doSubst) {
 			char *fullName;
-			char *p;
-			char *unexpandedMemName = memName;
+			char *p, *expandedMem;
+			const char *unexpandedMem = mem.str;
 
-			(void)Var_Subst(memName, scope, VARE_UNDEFERR,
-			    &memName);
+			(void)Var_Subst(mem.str, scope, VARE_UNDEFERR,
+			    &expandedMem);
 			/* TODO: handle errors */
+			mem = FStr_InitOwn(expandedMem);
 
 			/*
 			 * Now form an archive spec and recurse to deal with
 			 * nested variables and multi-word variable values.
 			 */
-			fullName = FullName(libName.str, memName);
+			fullName = FullName(libName.str, mem.str);
 			p = fullName;
 
-			if (strchr(memName, '$') != NULL &&
-			    strcmp(memName, unexpandedMemName) == 0) {
+			if (strcmp(mem.str, unexpandedMem) == 0) {
 				/*
 				 * Must contain dynamic sources, so we can't
 				 * deal with it now. Just create an ARCHV node
@@ -398,9 +398,9 @@ Arch_ParseArchive(char **pp, GNodeList *gns, GNode *scope)
 			free(fullName);
 			/* XXX: does unexpandedMemName leak? */
 
-		} else if (Dir_HasWildcards(memName)) {
+		} else if (Dir_HasWildcards(mem.str)) {
 			StringList members = LST_INIT;
-			SearchPath_Expand(&dirSearchPath, memName, &members);
+			SearchPath_Expand(&dirSearchPath, mem.str, &members);
 
 			while (!Lst_IsEmpty(&members)) {
 				char *member = Lst_Dequeue(&members);
@@ -416,7 +416,7 @@ Arch_ParseArchive(char **pp, GNodeList *gns, GNode *scope)
 			Lst_Done(&members);
 
 		} else {
-			char *fullname = FullName(libName.str, memName);
+			char *fullname = FullName(libName.str, mem.str);
 			gn = Targ_GetNode(fullname);
 			free(fullname);
 
@@ -430,8 +430,7 @@ Arch_ParseArchive(char **pp, GNodeList *gns, GNode *scope)
 			gn->type |= OP_ARCHV;
 			Lst_Append(gns, gn);
 		}
-		if (doSubst)
-			free(memName);
+		FStr_Done(&mem);
 
 		*cp = saveChar;
 	}
