@@ -1,4 +1,4 @@
-/*	$NetBSD: cond.c,v 1.302 2021/12/12 09:36:00 rillig Exp $	*/
+/*	$NetBSD: cond.c,v 1.306 2021/12/15 12:58:01 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990 The Regents of the University of California.
@@ -95,7 +95,7 @@
 #include "dir.h"
 
 /*	"@(#)cond.c	8.2 (Berkeley) 1/2/94"	*/
-MAKE_RCSID("$NetBSD: cond.c,v 1.302 2021/12/12 09:36:00 rillig Exp $");
+MAKE_RCSID("$NetBSD: cond.c,v 1.306 2021/12/15 12:58:01 rillig Exp $");
 
 /*
  * The parsing of conditional expressions is based on this grammar:
@@ -317,7 +317,7 @@ FuncExists(const char *arg)
 
 	path = Dir_FindFile(arg, &dirSearchPath);
 	DEBUG2(COND, "exists(%s) result is \"%s\"\n",
-	       arg, path != NULL ? path : "");
+	    arg, path != NULL ? path : "");
 	result = path != NULL;
 	free(path);
 	return result;
@@ -445,7 +445,7 @@ CondParser_StringExpr(CondParser *par, const char *start,
 
 	Buf_AddStr(buf, inout_str->str);
 	FStr_Done(inout_str);
-	*inout_str = FStr_InitRefer(NULL); /* not finished yet */
+	*inout_str = FStr_InitRefer(NULL);	/* not finished yet */
 	return true;
 }
 
@@ -553,9 +553,11 @@ EvalNotEmpty(CondParser *par, const char *value, bool quoted)
 	if (TryParseNumber(value, &num))
 		return num != 0.0;
 
-	/* For .if ${...}, check for non-empty string.  This is different from
-	 * the evaluation function from that .if variant, which would test
-	 * whether a variable of the given name were defined. */
+	/*
+	 * For .if ${...}, check for non-empty string.  This is different
+	 * from the evaluation function from that .if variant, which would
+	 * test whether a variable of the given name were defined.
+	 */
 	/*
 	 * XXX: Whitespace should count as empty, just as in
 	 * CondParser_FuncCallEmpty.
@@ -623,33 +625,19 @@ CondParser_ComparisonOp(CondParser *par, ComparisonOp *out_op)
 {
 	const char *p = par->p;
 
-	if (p[0] == '<' && p[1] == '=') {
-		*out_op = LE;
-		goto length_2;
-	} else if (p[0] == '<') {
-		*out_op = LT;
-		goto length_1;
-	} else if (p[0] == '>' && p[1] == '=') {
-		*out_op = GE;
-		goto length_2;
-	} else if (p[0] == '>') {
-		*out_op = GT;
-		goto length_1;
-	} else if (p[0] == '=' && p[1] == '=') {
-		*out_op = EQ;
-		goto length_2;
-	} else if (p[0] == '!' && p[1] == '=') {
-		*out_op = NE;
-		goto length_2;
-	}
+	if (p[0] == '<' && p[1] == '=')
+		return par->p += 2, *out_op = LE, true;
+	if (p[0] == '<')
+		return par->p += 1, *out_op = LT, true;
+	if (p[0] == '>' && p[1] == '=')
+		return par->p += 2, *out_op = GE, true;
+	if (p[0] == '>')
+		return par->p += 1, *out_op = GT, true;
+	if (p[0] == '=' && p[1] == '=')
+		return par->p += 2, *out_op = EQ, true;
+	if (p[0] == '!' && p[1] == '=')
+		return par->p += 2, *out_op = NE, true;
 	return false;
-
-length_2:
-	par->p = p + 2;
-	return true;
-length_1:
-	par->p = p + 1;
-	return true;
 }
 
 /*
@@ -1146,8 +1134,10 @@ Cond_EvalLine(const char *line)
 		/* None of the previous <cond> evaluated to true. */
 		IFS_INITIAL	= 0,
 
-		/* The previous <cond> evaluated to true.
-		 * The lines following this condition are interpreted. */
+		/*
+		 * The previous <cond> evaluated to true. The lines following
+		 * this condition are interpreted.
+		 */
 		IFS_ACTIVE	= 1 << 0,
 
 		/* The previous directive was an '.else'. */
@@ -1226,7 +1216,7 @@ Cond_EvalLine(const char *line)
 			} else {
 				if (state & IFS_SEEN_ELSE)
 					Parse_Error(PARSE_WARNING,
-						    "extra else");
+					    "extra else");
 				state = IFS_WAS_ACTIVE | IFS_SEEN_ELSE;
 			}
 			cond_states[cond_depth] = state;
@@ -1275,8 +1265,7 @@ Cond_EvalLine(const char *line)
 			 */
 			cond_states_cap += 32;
 			cond_states = bmake_realloc(cond_states,
-						    cond_states_cap *
-						    sizeof *cond_states);
+			    cond_states_cap * sizeof *cond_states);
 		}
 		state = cond_states[cond_depth];
 		cond_depth++;
@@ -1293,7 +1282,9 @@ Cond_EvalLine(const char *line)
 	/* And evaluate the conditional expression */
 	if (CondEvalExpression(p, &value, plain, evalBare, negate,
 	    true, false) == COND_INVALID) {
-		/* Syntax error in conditional, error message already output. */
+		/*
+		 * Syntax error in conditional, error message already output.
+		 */
 		/* Skip everything to matching .endif */
 		/* XXX: An extra '.else' is not detected in this case. */
 		cond_states[cond_depth] = IFS_WAS_ACTIVE;
@@ -1315,7 +1306,7 @@ Cond_restore_depth(unsigned int saved_depth)
 
 	if (open_conds != 0 || saved_depth > cond_depth) {
 		Parse_Error(PARSE_FATAL, "%u open conditional%s",
-			    open_conds, open_conds == 1 ? "" : "s");
+		    open_conds, open_conds == 1 ? "" : "s");
 		cond_depth = cond_min_depth;
 	}
 

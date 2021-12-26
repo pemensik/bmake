@@ -1,4 +1,4 @@
-/*	$NetBSD: main.c,v 1.541 2021/08/14 13:32:12 rillig Exp $	*/
+/*	$NetBSD: main.c,v 1.547 2021/12/15 12:58:01 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -111,7 +111,7 @@
 #include "trace.h"
 
 /*	"@(#)main.c	8.3 (Berkeley) 3/19/94"	*/
-MAKE_RCSID("$NetBSD: main.c,v 1.541 2021/08/14 13:32:12 rillig Exp $");
+MAKE_RCSID("$NetBSD: main.c,v 1.547 2021/12/15 12:58:01 rillig Exp $");
 #if defined(MAKE_NATIVE) && !defined(lint)
 __COPYRIGHT("@(#) Copyright (c) 1988, 1989, 1990, 1993 "
 	    "The Regents of the University of California.  "
@@ -138,7 +138,7 @@ static const char *tracefile;
 static int ReadMakefile(const char *);
 static void purge_relative_cached_realpaths(void);
 
-static bool ignorePWD;	/* if we use -C, PWD is meaningless */
+static bool ignorePWD;		/* if we use -C, PWD is meaningless */
 static char objdir[MAXPATHLEN + 1]; /* where we chdir'ed to */
 char curdir[MAXPATHLEN + 1];	/* Startup directory */
 const char *progname;
@@ -251,79 +251,79 @@ MainParseArgDebug(const char *argvalue)
 	for (modules = argvalue; *modules != '\0'; modules++) {
 		switch (*modules) {
 		case '0':	/* undocumented, only intended for tests */
-			debug = DEBUG_NONE;
+			memset(&debug, 0, sizeof(debug));
 			break;
 		case 'A':
-			debug = DEBUG_ALL;
+			memset(&debug, ~0, sizeof(debug));
 			break;
 		case 'a':
-			debug |= DEBUG_ARCH;
+			debug.DEBUG_ARCH = true;
 			break;
 		case 'C':
-			debug |= DEBUG_CWD;
+			debug.DEBUG_CWD = true;
 			break;
 		case 'c':
-			debug |= DEBUG_COND;
+			debug.DEBUG_COND = true;
 			break;
 		case 'd':
-			debug |= DEBUG_DIR;
+			debug.DEBUG_DIR = true;
 			break;
 		case 'e':
-			debug |= DEBUG_ERROR;
+			debug.DEBUG_ERROR = true;
 			break;
 		case 'f':
-			debug |= DEBUG_FOR;
+			debug.DEBUG_FOR = true;
 			break;
 		case 'g':
 			if (modules[1] == '1') {
-				debug |= DEBUG_GRAPH1;
+				debug.DEBUG_GRAPH1 = true;
 				modules++;
 			} else if (modules[1] == '2') {
-				debug |= DEBUG_GRAPH2;
+				debug.DEBUG_GRAPH2 = true;
 				modules++;
 			} else if (modules[1] == '3') {
-				debug |= DEBUG_GRAPH3;
+				debug.DEBUG_GRAPH3 = true;
 				modules++;
 			}
 			break;
 		case 'h':
-			debug |= DEBUG_HASH;
+			debug.DEBUG_HASH = true;
 			break;
 		case 'j':
-			debug |= DEBUG_JOB;
+			debug.DEBUG_JOB = true;
 			break;
 		case 'L':
 			opts.strict = true;
 			break;
 		case 'l':
-			debug |= DEBUG_LOUD;
+			debug.DEBUG_LOUD = true;
 			break;
 		case 'M':
-			debug |= DEBUG_META;
+			debug.DEBUG_META = true;
 			break;
 		case 'm':
-			debug |= DEBUG_MAKE;
+			debug.DEBUG_MAKE = true;
 			break;
 		case 'n':
-			debug |= DEBUG_SCRIPT;
+			debug.DEBUG_SCRIPT = true;
 			break;
 		case 'p':
-			debug |= DEBUG_PARSE;
+			debug.DEBUG_PARSE = true;
 			break;
 		case 's':
-			debug |= DEBUG_SUFF;
+			debug.DEBUG_SUFF = true;
 			break;
 		case 't':
-			debug |= DEBUG_TARG;
+			debug.DEBUG_TARG = true;
 			break;
 		case 'V':
 			opts.debugVflag = true;
 			break;
 		case 'v':
-			debug |= DEBUG_VAR;
+			debug.DEBUG_VAR = true;
 			break;
 		case 'x':
-			debug |= DEBUG_SHELL;
+			debug.DEBUG_SHELL = true;
 			break;
 		case 'F':
 			MainParseArgDebugFile(modules + 1);
@@ -469,7 +469,8 @@ MainParseArg(char c, const char *argvalue)
 		MainParseArgChdir(argvalue);
 		break;
 	case 'D':
-		if (argvalue[0] == '\0') return false;
+		if (argvalue[0] == '\0')
+			return false;
 		Global_SetExpand(argvalue, "1");
 		Global_Append(MAKEFLAGS, "-D");
 		Global_Append(MAKEFLAGS, argvalue);
@@ -622,7 +623,10 @@ rearg:
 		/* '-' found at some earlier point */
 		optspec = strchr(optspecs, c);
 		if (c != '\0' && optspec != NULL && optspec[1] == ':') {
-			/* -<something> found, and <something> should have an arg */
+			/*
+			 * -<something> found, and <something> should have an
+			 * argument
+			 */
 			inOption = false;
 			arginc = 1;
 			argvalue = optscan;
@@ -861,7 +865,7 @@ PrintVar(const char *varname, bool expandVars)
 		(void)Var_Subst(varname, SCOPE_GLOBAL, VARE_WANTRES, &evalue);
 		/* TODO: handle errors */
 		printf("%s\n", evalue);
-		bmake_free(evalue);
+		free(evalue);
 
 	} else if (expandVars) {
 		char *expr = str_concat3("${", varname, "}");
@@ -870,7 +874,7 @@ PrintVar(const char *varname, bool expandVars)
 		/* TODO: handle errors */
 		free(expr);
 		printf("%s\n", evalue);
-		bmake_free(evalue);
+		free(evalue);
 
 	} else {
 		FStr value = Var_Value(SCOPE_GLOBAL, varname);
@@ -923,7 +927,7 @@ static bool
 runTargets(void)
 {
 	GNodeList targs = LST_INIT;	/* target nodes to create */
-	bool outOfDate;	/* false if all targets up to date */
+	bool outOfDate;		/* false if all targets up to date */
 
 	/*
 	 * Have now read the entire graph and need to make a list of
@@ -1141,7 +1145,7 @@ static void
 CmdOpts_Init(void)
 {
 	opts.compatMake = false;
-	opts.debug = DEBUG_NONE;
+	memset(&opts.debug, 0, sizeof(opts.debug));
 	/* opts.debug_file has already been initialized earlier */
 	opts.strict = false;
 	opts.debugVflag = false;
@@ -1252,8 +1256,13 @@ ReadBuiltinRules(void)
 		Fatal("%s: cannot open %s.",
 		    progname, (const char *)sysMkFiles.first->datum);
 
-	/* Free the list nodes but not the actual filenames since these may
-	 * still be used in GNodes. */
+	/*
+	 * Free the list nodes but not the actual filenames since these may
+	 * still be used in GNodes.
+	 *
+	 * TODO: Check whether the above is still true after Str_Intern has
+	 *  been added.
+	 */
 	Lst_Done(&sysMkFiles);
 }
 
@@ -1343,10 +1352,12 @@ ReadFirstDefaultMakefile(void)
 	    SCOPE_CMDLINE, VARE_WANTRES, &prefs);
 	/* TODO: handle errors */
 
-	/* XXX: This should use a local list instead of opts.makefiles
-	 * since these makefiles do not come from the command line.  They
-	 * also have different semantics in that only the first file that
-	 * is found is processed.  See ReadAllMakefiles. */
+	/*
+	 * XXX: This should use a local list instead of opts.makefiles since
+	 * these makefiles do not come from the command line.  They also have
+	 * different semantics in that only the first file that is found is
+	 * processed.  See ReadAllMakefiles.
+	 */
 	(void)str2Lst_Append(&opts.makefiles, prefs);
 
 	for (ln = opts.makefiles.first; ln != NULL; ln = ln->next)
@@ -1373,6 +1384,7 @@ main_Init(int argc, char **argv)
 	/* default to writing debug to stderr */
 	opts.debug_file = stderr;
 
+	Str_Intern_Init();
 	HashTable_Init(&cached_realpaths);
 
 #ifdef SIGINFO
@@ -1415,7 +1427,7 @@ main_Init(int argc, char **argv)
 #ifdef MAKE_VERSION
 	Global_Set("MAKE_VERSION", MAKE_VERSION);
 #endif
-	Global_Set(".newline", "\n"); /* handy for :@ loops */
+	Global_Set(".newline", "\n");	/* handy for :@ loops */
 	/*
 	 * This is the traditional preference for makefiles.
 	 */
@@ -1679,6 +1691,7 @@ main_CleanUp(void)
 	Dir_End();
 	Job_End();
 	Trace_End();
+	Str_Intern_End();
 }
 
 /* Determine the exit code. */
@@ -1745,7 +1758,7 @@ ReadMakefile(const char *fname)
 		name = Dir_FindFile(fname, parseIncPath);
 		if (name == NULL) {
 			SearchPath *sysInc = Lst_IsEmpty(&sysIncPath->dirs)
-					     ? defSysIncPath : sysIncPath;
+			    ? defSysIncPath : sysIncPath;
 			name = Dir_FindFile(fname, sysInc);
 		}
 		if (name == NULL || (fd = open(name, O_RDONLY)) == -1) {
@@ -1835,7 +1848,7 @@ Cmd_Exec(const char *cmd, const char **errfmt)
 
 		(void)execv(shellPath, UNCONST(args));
 		_exit(1);
-		/*NOTREACHED*/
+		/* NOTREACHED */
 
 	case -1:
 		*errfmt = "Couldn't exec \"%s\"";
@@ -1874,7 +1887,10 @@ Cmd_Exec(const char *cmd, const char **errfmt)
 		else if (WEXITSTATUS(status) != 0)
 			*errfmt = "\"%s\" returned non-zero status";
 
-		/* Convert newlines to spaces.  A final newline is just stripped */
+		/*
+		 * Convert newlines to spaces.  A final newline is just
+		 * stripped.
+		 */
 		if (res_len > 0 && res[res_len - 1] == '\n')
 			res[res_len - 1] = '\0';
 		for (cp = res; *cp != '\0'; cp++)
@@ -2068,8 +2084,10 @@ purge_relative_cached_realpaths(void)
 		if (he->key[0] != '/') {
 			DEBUG1(DIR, "cached_realpath: purging %s\n", he->key);
 			HashTable_DeleteEntry(&cached_realpaths, he);
-			/* XXX: What about the allocated he->value? Either
-			 * free them or document why they cannot be freed. */
+			/*
+			 * XXX: What about the allocated he->value? Either
+			 * free them or document why they cannot be freed.
+			 */
 		}
 		he = nhe;
 	}
@@ -2174,7 +2192,7 @@ PrintOnError(GNode *gn, const char *msg)
 	{
 		char *errorVarsValues;
 		(void)Var_Subst("${MAKE_PRINT_VAR_ON_ERROR:@v@$v='${$v}'\n@}",
-				SCOPE_GLOBAL, VARE_WANTRES, &errorVarsValues);
+		    SCOPE_GLOBAL, VARE_WANTRES, &errorVarsValues);
 		/* TODO: handle errors */
 		printf("%s", errorVarsValues);
 		free(errorVarsValues);
@@ -2253,8 +2271,8 @@ mkTempFile(const char *pattern, char *tfile, size_t tfile_sz)
 	if (tmpdir == NULL)
 		tmpdir = getTmpdir();
 	if (tfile == NULL) {
-	    tfile = tbuf;
-	    tfile_sz = sizeof tbuf;
+		tfile = tbuf;
+		tfile_sz = sizeof tbuf;
 	}
 	if (pattern[0] == '/') {
 		snprintf(tfile, tfile_sz, "%s", pattern);

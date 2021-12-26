@@ -1,4 +1,4 @@
-/*	$NetBSD: job.c,v 1.440 2021/11/28 19:51:06 rillig Exp $	*/
+/*	$NetBSD: job.c,v 1.443 2021/12/15 12:58:01 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990 The Regents of the University of California.
@@ -155,7 +155,7 @@
 #include "trace.h"
 
 /*	"@(#)job.c	8.2 (Berkeley) 3/19/94"	*/
-MAKE_RCSID("$NetBSD: job.c,v 1.440 2021/11/28 19:51:06 rillig Exp $");
+MAKE_RCSID("$NetBSD: job.c,v 1.443 2021/12/15 12:58:01 rillig Exp $");
 
 /*
  * A shell defines how the commands are run.  All commands for a target are
@@ -214,13 +214,15 @@ typedef struct Shell {
 	const char *errOff;	/* command to turn off error checking */
 
 	const char *echoTmpl;	/* template to echo a command */
-	const char *runIgnTmpl;	/* template to run a command
-				 * without error checking */
-	const char *runChkTmpl;	/* template to run a command
-				 * with error checking */
+	const char *runIgnTmpl;	/* template to run a command without error
+				 * checking */
+	const char *runChkTmpl;	/* template to run a command with error
+				 * checking */
 
-	/* string literal that results in a newline character when it appears
-	 * outside of any 'quote' or "quote" characters */
+	/*
+	 * A string literal that results in a newline character when it
+	 * occurs outside of any 'quote' or "quote" characters.
+	 */
 	const char *newline;
 	char commentChar;	/* character used by shell for comment lines */
 
@@ -438,7 +440,7 @@ static void watchfd(Job *);
 static void clearfd(Job *);
 static bool readyfd(Job *);
 
-static char *targPrefix = NULL; /* To identify a job change in the output. */
+static char *targPrefix = NULL;	/* To identify a job change in the output. */
 static Job tokenWaitJob;	/* token wait pseudo-job */
 
 static Job childExitJob;	/* child exit pseudo-job */
@@ -924,7 +926,7 @@ JobWriteCommand(Job *job, ShellWriter *wr, StringListNode *ln, const char *ucmd)
 
 	run = GNode_ShouldExecute(job->node);
 
-	Var_Subst(ucmd, job->node, VARE_WANTRES, &xcmd);
+	(void)Var_Subst(ucmd, job->node, VARE_WANTRES, &xcmd);
 	/* TODO: handle errors */
 	xcmdStart = xcmd;
 
@@ -938,7 +940,7 @@ JobWriteCommand(Job *job, ShellWriter *wr, StringListNode *ln, const char *ucmd)
 		 * We're not actually executing anything...
 		 * but this one needs to be - use compat mode just for it.
 		 */
-		Compat_RunCommand(ucmd, job->node, ln);
+		(void)Compat_RunCommand(ucmd, job->node, ln);
 		free(xcmdStart);
 		return;
 	}
@@ -1279,9 +1281,11 @@ TouchRegular(GNode *gn)
 		return;		/* XXX: What about propagating the error? */
 	}
 
-	/* Last resort: update the file's time stamps in the traditional way.
+	/*
+	 * Last resort: update the file's time stamps in the traditional way.
 	 * XXX: This doesn't work for empty files, which are sometimes used
-	 * as marker files. */
+	 * as marker files.
+	 */
 	if (read(fd, &c, 1) == 1) {
 		(void)lseek(fd, 0, SEEK_SET);
 		while (write(fd, &c, 1) == -1 && errno == EAGAIN)
@@ -1635,7 +1639,7 @@ JobWriteShellCommands(Job *job, GNode *gn, bool *out_run)
 #ifdef USE_META
 	if (useMeta) {
 		meta_job_start(job, gn);
-		if (gn->type & OP_SILENT) /* might have changed */
+		if (gn->type & OP_SILENT)	/* might have changed */
 			job->echo = false;
 	}
 #endif
@@ -1698,7 +1702,7 @@ JobStart(GNode *gn, bool special)
 		 * also dead...
 		 */
 		if (!cmdsOK) {
-			PrintOnError(gn, NULL); /* provide some clue */
+			PrintOnError(gn, NULL);	/* provide some clue */
 			DieHorribly();
 		}
 	} else if (((gn->type & OP_MAKE) && !opts.noRecursiveExecute) ||
@@ -1715,7 +1719,7 @@ JobStart(GNode *gn, bool special)
 		 * also dead...
 		 */
 		if (!cmdsOK) {
-			PrintOnError(gn, NULL); /* provide some clue */
+			PrintOnError(gn, NULL);	/* provide some clue */
 			DieHorribly();
 		}
 
@@ -2148,7 +2152,7 @@ Job_CatchOutput(void)
 		 */
 		if (useMeta && job->inPollfd != &fds[i]) {
 			if (meta_job_event(job) <= 0) {
-				fds[i].events = 0; /* never mind */
+				fds[i].events = 0;	/* never mind */
 			}
 		}
 #endif
@@ -2329,8 +2333,10 @@ Job_Init(void)
 	AddSig(SIGCONT, JobContinueSig);
 
 	(void)Job_RunTarget(".BEGIN", NULL);
-	/* Create the .END node now, even though no code in the unit tests
-	 * depends on it.  See also Targ_GetEndNode in Compat_Run. */
+	/*
+	 * Create the .END node now, even though no code in the unit tests
+	 * depends on it.  See also Targ_GetEndNode in Compat_Run.
+	 */
 	(void)Targ_GetEndNode();
 }
 
@@ -2470,13 +2476,17 @@ Job_ParseShell(char *line)
 			} else if (strncmp(arg, "newline=", 8) == 0) {
 				newShell.newline = arg + 8;
 			} else if (strncmp(arg, "check=", 6) == 0) {
-				/* Before 2020-12-10, these two variables
-				 * had been a single variable. */
+				/*
+				 * Before 2020-12-10, these two variables had
+				 * been a single variable.
+				 */
 				newShell.errOn = arg + 6;
 				newShell.echoTmpl = arg + 6;
 			} else if (strncmp(arg, "ignore=", 7) == 0) {
-				/* Before 2020-12-10, these two variables
-				 * had been a single variable. */
+				/*
+				 * Before 2020-12-10, these two variables had
+				 * been a single variable.
+				 */
 				newShell.errOff = arg + 7;
 				newShell.runIgnTmpl = arg + 7;
 			} else if (strncmp(arg, "errout=", 7) == 0) {
@@ -2838,7 +2848,7 @@ Job_TempFile(const char *pattern, char *tfile, size_t tfile_sz)
 	JobSigLock(&mask);
 	fd = mkTempFile(pattern, tfile, tfile_sz);
 	if (tfile != NULL && !DEBUG(SCRIPT))
-	    unlink(tfile);
+		unlink(tfile);
 	JobSigUnlock(&mask);
 
 	return fd;
@@ -3035,4 +3045,4 @@ emul_poll(struct pollfd *fd, int nfd, int timeout)
 
 	return npoll;
 }
-#endif /* USE_SELECT */
+#endif				/* USE_SELECT */

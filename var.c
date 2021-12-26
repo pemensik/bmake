@@ -1,4 +1,4 @@
-/*	$NetBSD: var.c,v 1.973 2021/12/12 20:45:48 sjg Exp $	*/
+/*	$NetBSD: var.c,v 1.989 2021/12/15 13:03:33 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -148,7 +148,7 @@
 #include "metachar.h"
 
 /*	"@(#)var.c	8.3 (Berkeley) 3/19/94" */
-MAKE_RCSID("$NetBSD: var.c,v 1.973 2021/12/12 20:45:48 sjg Exp $");
+MAKE_RCSID("$NetBSD: var.c,v 1.989 2021/12/15 13:03:33 rillig Exp $");
 
 /*
  * Variables are defined using one of the VAR=value assignments.  Their
@@ -163,8 +163,8 @@ MAKE_RCSID("$NetBSD: var.c,v 1.973 2021/12/12 20:45:48 sjg Exp $");
  * not be possible to undefine a variable during the evaluation of an
  * expression, or Var.name might point nowhere.
  *
- * Environment variables are temporary.  They are returned by VarFind, and
- * after using them, they must be freed using VarFreeEnv.
+ * Environment variables are short-lived.  They are returned by VarFind, and
+ * after using them, they must be freed using VarFreeShortLived.
  *
  * Undefined variables occur during evaluation of variable expressions such
  * as ${UNDEF:Ufallback} in Var_Parse and ApplyModifiers.
@@ -181,14 +181,20 @@ typedef struct Var {
 	Buffer val;
 
 	/* The variable came from the command line. */
-	bool fromCmd: 1;
+	bool fromCmd:1;
+
+	/*
+	 * The variable is short-lived.
+	 * These variables are not registered in any GNode, therefore they
+	 * must be freed after use.
+	 */
+	bool shortLived:1;
 
 	/*
 	 * The variable comes from the environment.
-	 * These variables are not registered in any GNode, therefore they
-	 * must be freed as soon as they are not used anymore.
+	 * Appending to its value moves the variable to the global scope.
 	 */
-	bool fromEnv: 1;
+	bool fromEnvironment:1;
 
 	/*
 	 * The variable value cannot be changed anymore, and the variable
@@ -197,19 +203,19 @@ typedef struct Var {
 	 *
 	 * See VAR_SET_READONLY.
 	 */
-	bool readOnly: 1;
+	bool readOnly:1;
 
 	/*
 	* The variable's value is currently being used by Var_Parse or
 	* Var_Subst.  This marker is used to avoid endless recursion.
 	*/
-	bool inUse: 1;
+	bool inUse:1;
 
 	/*
 	 * The variable is exported to the environment, to be used by child
 	 * processes.
 	 */
-	bool exported: 1;
+	bool exported:1;
 
 	/*
 	 * At the point where this variable was exported, it contained an
@@ -217,7 +223,7 @@ typedef struct Var {
 	 * process is started, it needs to be exported again, in the hope
 	 * that the referenced variable can then be resolved.
 	 */
-	bool reexport: 1;
+	bool reexport:1;
 } Var;
 
 /*
@@ -250,10 +256,10 @@ typedef enum UnexportWhat {
 
 /* Flags for pattern matching in the :S and :C modifiers */
 typedef struct PatternFlags {
-	bool subGlobal: 1;	/* 'g': replace as often as possible */
-	bool subOnce: 1;	/* '1': replace only once */
-	bool anchorStart: 1;	/* '^': match only at start of word */
-	bool anchorEnd: 1;	/* '$': match only at end of word */
+	bool subGlobal:1;	/* 'g': replace as often as possible */
+	bool subOnce:1;		/* '1': replace only once */
+	bool anchorStart:1;	/* '^': match only at start of word */
+	bool anchorEnd:1;	/* '$': match only at end of word */
 } PatternFlags;
 
 /* SepBuf builds a string from words interleaved with separators. */
@@ -337,7 +343,8 @@ static const char VarEvalMode_Name[][32] = {
 
 
 static Var *
-VarNew(FStr name, const char *value, bool fromEnv, bool readOnly)
+VarNew(FStr name, const char *value,
+       bool shortLived, bool fromEnvironment, bool readOnly)
 {
 	size_t value_len = strlen(value);
 	Var *var = bmake_malloc(sizeof *var);
@@ -345,7 +352,8 @@ VarNew(FStr name, const char *value, bool fromEnv, bool readOnly)
 	Buf_InitSize(&var->val, value_len + 1);
 	Buf_AddBytes(&var->val, value, value_len);
 	var->fromCmd = false;
-	var->fromEnv = fromEnv;
+	var->shortLived = shortLived;
+	var->fromEnvironment = fromEnvironment;
 	var->readOnly = readOnly;
 	var->inUse = false;
 	var->exported = false;
@@ -399,8 +407,8 @@ GNode_FindVar(GNode *scope, Substring varname, unsigned int hash)
  *
  * Results:
  *	The found variable, or NULL if the variable does not exist.
- *	If the variable is an environment variable, it must be freed using
- *	VarFreeEnv after use.
+ *	If the variable is short-lived (such as environment variables), it
+ *	must be freed using VarFreeShortLived after use.
  */
 static Var *
 VarFindSubstring(Substring name, GNode *scope, bool elsewhere)
@@ -439,7 +447,7 @@ VarFindSubstring(Substring name, GNode *scope, bool elsewhere)
 		envName = Substring_Str(name);
 		envValue = getenv(envName.str);
 		if (envValue != NULL)
-			return VarNew(envName, envValue, true, false);
+			return VarNew(envName, envValue, true, true, false);
 		FStr_Done(&envName);
 
 		if (opts.checkEnvFirst && scope != SCOPE_GLOBAL) {
@@ -463,11 +471,11 @@ VarFind(const char *name, GNode *scope, bool elsewhere)
 	return VarFindSubstring(Substring_InitStr(name), scope, elsewhere);
 }
 
-/* If the variable is an environment variable, free it, including its value. */
+/* If the variable is short-lived, free it, including its value. */
 static void
-VarFreeEnv(Var *v)
+VarFreeShortLived(Var *v)
 {
-	if (!v->fromEnv)
+	if (!v->shortLived)
 		return;
 
 	FStr_Done(&v->name);
@@ -481,7 +489,7 @@ VarAdd(const char *name, const char *value, GNode *scope, VarSetFlags flags)
 {
 	HashEntry *he = HashTable_CreateEntry(&scope->vars, name, NULL);
 	Var *v = VarNew(FStr_InitRefer(/* aliased to */ he->key), value,
-	    false, (flags & VAR_SET_READONLY) != 0);
+	    false, false, (flags & VAR_SET_READONLY) != 0);
 	HashEntry_Set(he, v);
 	DEBUG3(VAR, "%s: %s = %s\n", scope->name, name, value);
 	return v;
@@ -948,7 +956,7 @@ ExistsInCmdline(const char *name, const char *val)
 		return true;
 	}
 
-	VarFreeEnv(v);
+	VarFreeShortLived(v);
 	return false;
 }
 
@@ -1023,8 +1031,10 @@ Var_SetWithFlags(GNode *scope, const char *name, const char *val,
 		if (!opts.varNoExportEnv)
 			setenv(name, val, 1);
 		/* XXX: What about .MAKE.EXPORTED? */
-		/* XXX: Why not just mark the variable for needing export,
-		 *  as in ExportVarPlain? */
+		/*
+		 * XXX: Why not just mark the variable for needing export, as
+		 * in ExportVarPlain?
+		 */
 
 		Global_Append(MAKEOVERRIDES, name);
 	}
@@ -1033,7 +1043,7 @@ Var_SetWithFlags(GNode *scope, const char *name, const char *val,
 		save_dollars = ParseBoolean(val, save_dollars);
 
 	if (v != NULL)
-		VarFreeEnv(v);
+		VarFreeShortLived(v);
 }
 
 /* See Var_Set for documentation. */
@@ -1129,17 +1139,18 @@ Var_Append(GNode *scope, const char *name, const char *val)
 
 		DEBUG3(VAR, "%s: %s = %s\n", scope->name, name, v->val.data);
 
-		if (v->fromEnv) {
+		if (v->fromEnvironment) {
 			/*
-			 * If the original variable came from the environment,
-			 * we have to install it in the global scope (we
-			 * could place it in the environment, but then we
-			 * should provide a way to export other variables...)
+			 * The variable originally came from the environment.
+			 * Install it in the global scope (we could place it
+			 * in the environment, but then we should provide a
+			 * way to export other variables...)
 			 */
-			v->fromEnv = false;
+			v->fromEnvironment = false;
+			v->shortLived = false;
 			/*
 			 * This is the only place where a variable is
-			 * created whose v->name is not the same as
+			 * created in a scope, where v->name does not alias
 			 * scope->vars->key.
 			 */
 			HashTable_Set(&scope->vars, name, v);
@@ -1207,7 +1218,7 @@ Var_Exists(GNode *scope, const char *name)
 	if (v == NULL)
 		return false;
 
-	VarFreeEnv(v);
+	VarFreeShortLived(v);
 	return true;
 }
 
@@ -1258,13 +1269,13 @@ Var_Value(GNode *scope, const char *name)
 	if (v == NULL)
 		return FStr_InitRefer(NULL);
 
-	if (!v->fromEnv)
+	if (!v->shortLived)
 		return FStr_InitRefer(v->val.data);
 
-	/* Since environment variables are short-lived, free it now. */
-	FStr_Done(&v->name);
-	value = Buf_DoneData(&v->val);
-	free(v);
+	value = v->val.data;
+	v->val.data = NULL;
+	VarFreeShortLived(v);
+
 	return FStr_InitOwn(value);
 }
 
@@ -1605,58 +1616,55 @@ VarREError(int reerr, const regex_t *pat, const char *str)
 	free(errbuf);
 }
 
+/* In the modifier ':C', replace a backreference from \0 to \9. */
+static void
+RegexReplaceBackref(char ref, SepBuf *buf, const char *wp,
+		    const regmatch_t *m, size_t nsub)
+{
+	unsigned int n = ref - '0';
+
+	if (n >= nsub)
+		Error("No subexpression \\%u", n);
+	else if (m[n].rm_so == -1) {
+		if (opts.strict)
+			Error("No match for subexpression \\%u", n);
+	} else {
+		SepBuf_AddBytesBetween(buf,
+		    wp + (size_t)m[n].rm_so,
+		    wp + (size_t)m[n].rm_eo);
+	}
+}
+
 /*
- * Replacement of regular expressions is not specified by POSIX, therefore
- * re-implement it here.
+ * The regular expression matches the word; now add the replacement to the
+ * buffer, taking back-references from 'wp'.
  */
 static void
-RegexReplace(const char *replace, SepBuf *buf, const char *wp,
+RegexReplace(Substring replace, SepBuf *buf, const char *wp,
 	     const regmatch_t *m, size_t nsub)
 {
 	const char *rp;
-	unsigned int n;
 
-	for (rp = replace; *rp != '\0'; rp++) {
-		if (*rp == '\\' && (rp[1] == '&' || rp[1] == '\\')) {
-			SepBuf_AddBytes(buf, rp + 1, 1);
-			rp++;
-			continue;
-		}
-
-		if (*rp == '&') {
+	for (rp = replace.start; rp != replace.end; rp++) {
+		if (*rp == '\\' && rp + 1 != replace.end &&
+		    (rp[1] == '&' || rp[1] == '\\'))
+			SepBuf_AddBytes(buf, ++rp, 1);
+		else if (*rp == '\\' && rp + 1 != replace.end &&
+			 ch_isdigit(rp[1]))
+			RegexReplaceBackref(*++rp, buf, wp, m, nsub);
+		else if (*rp == '&') {
 			SepBuf_AddBytesBetween(buf,
 			    wp + (size_t)m[0].rm_so,
 			    wp + (size_t)m[0].rm_eo);
-			continue;
-		}
-
-		if (*rp != '\\' || !ch_isdigit(rp[1])) {
+		} else
 			SepBuf_AddBytes(buf, rp, 1);
-			continue;
-		}
-
-		/* \0 to \9 backreference */
-		n = rp[1] - '0';
-		rp++;
-
-		if (n >= nsub) {
-			Error("No subexpression \\%u", n);
-		} else if (m[n].rm_so == -1) {
-			if (opts.strict) {
-				Error("No match for subexpression \\%u", n);
-			}
-		} else {
-			SepBuf_AddBytesBetween(buf,
-			    wp + (size_t)m[n].rm_so,
-			    wp + (size_t)m[n].rm_eo);
-		}
 	}
 }
 
 struct ModifyWord_SubstRegexArgs {
 	regex_t re;
 	size_t nsub;
-	const char *replace;
+	Substring replace;
 	PatternFlags pflags;
 	bool matched;
 };
@@ -1686,7 +1694,7 @@ again:
 	if (xrv != REG_NOMATCH)
 		VarREError(xrv, &args->re, "Unexpected regex error");
 no_match:
-	SepBuf_AddStr(buf, wp);
+	SepBuf_AddBytesBetween(buf, wp, word.end);
 	return;
 
 ok:
@@ -1836,7 +1844,9 @@ SubstringWords_JoinFree(SubstringWords words)
 
 	for (i = 0; i < words.len; i++) {
 		if (i != 0) {
-			/* XXX: Use ch->sep instead of ' ', for consistency. */
+			/*
+			 * XXX: Use ch->sep instead of ' ', for consistency.
+			 */
 			Buf_AddByte(&buf, ' ');
 		}
 		Buf_AddBytesBetween(&buf,
@@ -2036,9 +2046,9 @@ static const char ExprDefined_Name[][10] = {
 };
 
 #if __STDC_VERSION__ >= 199901L
-#define const_member const
+#define const_member		const
 #else
-#define const_member /* no const possible */
+#define const_member		/* no const possible */
 #endif
 
 /* An expression based on a variable, such as $@ or ${VAR:Mpattern:Q}. */
@@ -2234,11 +2244,15 @@ ParseModifierPartSubst(
     VarEvalMode emode,
     ModChain *ch,
     LazyBuf *part,
-    /* For the first part of the modifier ':S', set anchorEnd if the last
-     * character of the pattern is a $. */
+    /*
+     * For the first part of the modifier ':S', set anchorEnd if the last
+     * character of the pattern is a $.
+     */
     PatternFlags *out_pflags,
-    /* For the second part of the :S modifier, allow ampersands to be
-     * escaped and replace unescaped ampersands with subst->lhs. */
+    /*
+     * For the second part of the :S modifier, allow ampersands to be escaped
+     * and replace unescaped ampersands with subst->lhs.
+     */
     struct ModifyWord_SubstArgs *subst
 )
 {
@@ -2508,9 +2522,11 @@ ApplyModifier_Defined(const char **pp, ModChain *ch)
 	LazyBuf_Init(&buf, p);
 	while (!IsDelimiter(*p, ch) && *p != '\0') {
 
-		/* XXX: This code is similar to the one in Var_Parse.
-		 * See if the code can be merged.
-		 * See also ApplyModifier_Match and ParseModifierPart. */
+		/*
+		 * XXX: This code is similar to the one in Var_Parse. See if
+		 * the code can be merged. See also ApplyModifier_Match and
+		 * ParseModifierPart.
+		 */
 
 		/* Escaped delimiter or other special character */
 		/* See Buf_AddEscaped in for.c. */
@@ -2718,7 +2734,7 @@ ApplyModifier_ShellCommand(const char **pp, ModChain *ch)
 	else
 		Expr_SetValueRefer(expr, "");
 	if (errfmt != NULL)
-		Error(errfmt, cmd.str); /* XXX: why still return AMR_OK? */
+		Error(errfmt, cmd.str);	/* XXX: why still return AMR_OK? */
 	FStr_Done(&cmd);
 	Expr_Define(expr);
 
@@ -2767,7 +2783,9 @@ ApplyModifier_Range(const char **pp, ModChain *ch)
 
 	for (i = 0; i < n; i++) {
 		if (i != 0) {
-			/* XXX: Use ch->sep instead of ' ', for consistency. */
+			/*
+			 * XXX: Use ch->sep instead of ' ', for consistency.
+			 */
 			Buf_AddByte(&buf, ' ');
 		}
 		Buf_AddInt(&buf, 1 + (int)i);
@@ -2956,7 +2974,7 @@ ApplyModifier_Regex(const char **pp, ModChain *ch)
 	int error;
 	VarParseResult res;
 	LazyBuf reBuf, replaceBuf;
-	FStr re, replace;
+	FStr re;
 
 	char delim = (*pp)[1];
 	if (delim == '\0') {
@@ -2977,8 +2995,7 @@ ApplyModifier_Regex(const char **pp, ModChain *ch)
 		FStr_Done(&re);
 		return AMR_CLEANUP;
 	}
-	replace = LazyBuf_DoneGet(&replaceBuf);
-	args.replace = replace.str;
+	args.replace = LazyBuf_Get(&replaceBuf);
 
 	args.pflags = PatternFlags_None();
 	args.matched = false;
@@ -2986,7 +3003,7 @@ ApplyModifier_Regex(const char **pp, ModChain *ch)
 	ParsePatternFlags(pp, &args.pflags, &oneBigWord);
 
 	if (!ModChain_ShouldEval(ch)) {
-		FStr_Done(&replace);
+		LazyBuf_Done(&replaceBuf);
 		FStr_Done(&re);
 		return AMR_OK;
 	}
@@ -2994,7 +3011,7 @@ ApplyModifier_Regex(const char **pp, ModChain *ch)
 	error = regcomp(&args.re, re.str, REG_EXTENDED);
 	if (error != 0) {
 		VarREError(error, &args.re, "Regex compilation error");
-		FStr_Done(&replace);
+		LazyBuf_Done(&replaceBuf);
 		FStr_Done(&re);
 		return AMR_CLEANUP;
 	}
@@ -3006,7 +3023,7 @@ ApplyModifier_Regex(const char **pp, ModChain *ch)
 	ModifyWords(ch, ModifyWord_SubstRegex, &args, oneBigWord);
 
 	regfree(&args.re);
-	FStr_Done(&replace);
+	LazyBuf_Done(&replaceBuf);
 	FStr_Done(&re);
 	return AMR_OK;
 }
@@ -3446,8 +3463,8 @@ ApplyModifier_IfElse(const char **pp, ModChain *ch)
 {
 	Expr *expr = ch->expr;
 	VarParseResult res;
-	LazyBuf buf;
-	FStr then_expr, else_expr;
+	LazyBuf thenBuf;
+	LazyBuf elseBuf;
 
 	bool value = false;
 	VarEvalMode then_emode = VARE_PARSE_ONLY;
@@ -3462,38 +3479,40 @@ ApplyModifier_IfElse(const char **pp, ModChain *ch)
 			else_emode = expr->emode;
 	}
 
-	(*pp)++;			/* skip past the '?' */
-	res = ParseModifierPart(pp, ':', then_emode, ch, &buf);
+	(*pp)++;		/* skip past the '?' */
+	res = ParseModifierPart(pp, ':', then_emode, ch, &thenBuf);
 	if (res != VPR_OK)
 		return AMR_CLEANUP;
-	then_expr = LazyBuf_DoneGet(&buf);
 
-	res = ParseModifierPart(pp, ch->endc, else_emode, ch, &buf);
+	res = ParseModifierPart(pp, ch->endc, else_emode, ch, &elseBuf);
 	if (res != VPR_OK) {
-		FStr_Done(&then_expr);
+		LazyBuf_Done(&thenBuf);
 		return AMR_CLEANUP;
 	}
-	else_expr = LazyBuf_DoneGet(&buf);
 
 	(*pp)--;		/* Go back to the ch->endc. */
 
 	if (cond_rc == COND_INVALID) {
-		Error("Bad conditional expression '%s' in '%s?%s:%s'",
-		    expr->name, expr->name, then_expr.str, else_expr.str);
-		FStr_Done(&then_expr);
-		FStr_Done(&else_expr);
+		Substring thenExpr = LazyBuf_Get(&thenBuf);
+		Substring elseExpr = LazyBuf_Get(&elseBuf);
+		Error("Bad conditional expression '%s' in '%s?%.*s:%.*s'",
+		    expr->name, expr->name,
+		    (int)Substring_Length(thenExpr), thenExpr.start,
+		    (int)Substring_Length(elseExpr), elseExpr.start);
+		LazyBuf_Done(&thenBuf);
+		LazyBuf_Done(&elseBuf);
 		return AMR_CLEANUP;
 	}
 
 	if (!Expr_ShouldEval(expr)) {
-		FStr_Done(&then_expr);
-		FStr_Done(&else_expr);
+		LazyBuf_Done(&thenBuf);
+		LazyBuf_Done(&elseBuf);
 	} else if (value) {
-		Expr_SetValue(expr, then_expr);
-		FStr_Done(&else_expr);
+		Expr_SetValue(expr, LazyBuf_DoneGet(&thenBuf));
+		LazyBuf_Done(&elseBuf);
 	} else {
-		FStr_Done(&then_expr);
-		Expr_SetValue(expr, else_expr);
+		LazyBuf_Done(&thenBuf);
+		Expr_SetValue(expr, LazyBuf_DoneGet(&elseBuf));
 	}
 	Expr_Define(expr);
 	return AMR_OK;
@@ -3572,7 +3591,7 @@ ok:
 		if (gv == NULL)
 			scope = SCOPE_GLOBAL;
 		else
-			VarFreeEnv(gv);
+			VarFreeShortLived(gv);
 	}
 
 	switch (op[0]) {
@@ -3731,7 +3750,9 @@ ApplyModifier_SysV(const char **pp, ModChain *ch)
 	if (res != VPR_OK)
 		return AMR_CLEANUP;
 
-	/* The SysV modifier lasts until the end of the variable expression. */
+	/*
+	 * The SysV modifier lasts until the end of the variable expression.
+	 */
 	res = ParseModifierPart(pp, ch->endc, expr->emode, ch, &rhsBuf);
 	if (res != VPR_OK) {
 		LazyBuf_Done(&lhsBuf);
@@ -4106,7 +4127,7 @@ ApplyModifiers(
 	}
 
 	*pp = p;
-	assert(Expr_Str(expr) != NULL); /* Use var_Error or varUndefined. */
+	assert(Expr_Str(expr) != NULL);	/* Use var_Error or varUndefined. */
 	return;
 
 bad_modifier:
@@ -4417,17 +4438,18 @@ ParseVarnameLong(
 
 	v = VarFindSubstring(name, scope, true);
 
-	/* At this point, p points just after the variable name,
-	 * either at ':' or at endc. */
+	/*
+	 * At this point, p points just after the variable name, either at
+	 * ':' or at endc.
+	 */
 
-	if (v == NULL) {
-		if (Substring_Equals(name, ".SUFFIXES"))
-			v = VarNew(Substring_Str(name),
-			    Suff_NamesStr(), false, true);
-		else
-			v = FindLocalLegacyVar(name, scope,
-			    out_true_extraModifiers);
-	}
+	if (v == NULL && Substring_Equals(name, ".SUFFIXES")) {
+		char *suffixes = Suff_NamesStr();
+		v = VarNew(FStr_InitRefer(".SUFFIXES"), suffixes,
+		    true, false, true);
+		free(suffixes);
+	} else if (v == NULL)
+		v = FindLocalLegacyVar(name, scope, out_true_extraModifiers);
 
 	if (v == NULL) {
 		/*
@@ -4442,6 +4464,7 @@ ParseVarnameLong(
 			*out_false_pp = p;
 			*out_false_res = EvalUndefined(dynamic, start, p,
 			    name, emode, out_false_val);
+			LazyBuf_Done(&varname);
 			return false;
 		}
 
@@ -4459,7 +4482,8 @@ ParseVarnameLong(
 		 * is still undefined, Var_Parse will return an empty string
 		 * instead of the actually computed value.
 		 */
-		v = VarNew(LazyBuf_DoneGet(&varname), "", false, false);
+		v = VarNew(LazyBuf_DoneGet(&varname), "",
+		    true, false, false);
 		*out_true_exprDefined = DEF_UNDEF;
 	} else
 		LazyBuf_Done(&varname);
@@ -4470,20 +4494,6 @@ ParseVarnameLong(
 	*out_true_haveModifier = haveModifier;
 	*out_true_dynamic = dynamic;
 	return true;
-}
-
-/* Free the environment variable now since we own it. */
-static void
-FreeEnvVar(Var *v, Expr *expr)
-{
-	char *varValue = Buf_DoneData(&v->val);
-	if (expr->value.str == varValue)
-		expr->value.freeIt = varValue;
-	else
-		free(varValue);
-
-	FStr_Done(&v->name);
-	free(v);
 }
 
 #if __STDC_VERSION__ >= 199901L
@@ -4664,7 +4674,7 @@ Var_Parse(const char **pp, GNode *scope, VarEvalMode emode, FStr *out_val)
 	}
 
 	if (haveModifier) {
-		p++;	/* Skip initial colon. */
+		p++;		/* Skip initial colon. */
 		ApplyModifiers(&expr, &p, startc, endc);
 	}
 
@@ -4673,31 +4683,30 @@ Var_Parse(const char **pp, GNode *scope, VarEvalMode emode, FStr *out_val)
 
 	*pp = p;
 
-	if (v->fromEnv) {
-		FreeEnvVar(v, &expr);
-
-	} else if (expr.defined != DEF_REGULAR) {
-		if (expr.defined == DEF_UNDEF) {
-			if (dynamic) {
-				Expr_SetValueOwn(&expr,
-				    bmake_strsedup(start, p));
-			} else {
-				/*
-				 * The expression is still undefined,
-				 * therefore discard the actual value and
-				 * return an error marker instead.
-				 */
-				Expr_SetValueRefer(&expr,
-				    emode == VARE_UNDEFERR
-					? var_Error : varUndefined);
-			}
+	if (expr.defined == DEF_UNDEF) {
+		if (dynamic)
+			Expr_SetValueOwn(&expr, bmake_strsedup(start, p));
+		else {
+			/*
+			 * The expression is still undefined, therefore
+			 * discard the actual value and return an error marker
+			 * instead.
+			 */
+			Expr_SetValueRefer(&expr,
+			    emode == VARE_UNDEFERR
+				? var_Error : varUndefined);
 		}
-		/* XXX: This is not standard memory management. */
-		if (expr.value.str != v->val.data)
-			Buf_Done(&v->val);
-		FStr_Done(&v->name);
-		free(v);
 	}
+
+	if (v->shortLived) {
+		if (expr.value.str == v->val.data) {
+			/* move ownership */
+			expr.value.freeIt = v->val.data;
+			v->val.data = NULL;
+		}
+		VarFreeShortLived(v);
+	}
+
 	*out_val = expr.value;
 	return VPR_OK;		/* XXX: Is not correct in all cases */
 }
@@ -4748,10 +4757,12 @@ VarSubstExpr(const char **pp, Buffer *buf, GNode *scope,
 			p = nested_p;
 			*inout_errorReported = true;
 		} else {
-			/* Copy the initial '$' of the undefined expression,
+			/*
+			 * Copy the initial '$' of the undefined expression,
 			 * thereby deferring expansion of the expression, but
-			 * expand nested expressions if already possible.
-			 * See unit-tests/varparse-undef-partial.mk. */
+			 * expand nested expressions if already possible. See
+			 * unit-tests/varparse-undef-partial.mk.
+			 */
 			Buf_AddByte(buf, *p);
 			p++;
 		}
@@ -4798,8 +4809,10 @@ Var_Subst(const char *str, GNode *scope, VarEvalMode emode, char **out_res)
 	const char *p = str;
 	Buffer res;
 
-	/* Set true if an error has already been reported,
-	 * to prevent a plethora of messages when recursing */
+	/*
+	 * Set true if an error has already been reported, to prevent a
+	 * plethora of messages when recursing
+	 */
 	/* XXX: Why is the 'static' necessary here? */
 	static bool errorReported;
 

@@ -1,6 +1,6 @@
-# $Id: Makefile,v 1.164 2021/12/12 22:50:00 sjg Exp $
+# $Id: Makefile,v 1.165 2021/12/21 18:47:24 sjg Exp $
 #
-# $NetBSD: Makefile,v 1.288 2021/12/12 22:16:48 rillig Exp $
+# $NetBSD: Makefile,v 1.290 2021/12/14 00:02:57 rillig Exp $
 #
 # Unit tests for make(1)
 #
@@ -93,6 +93,7 @@ TESTS+=		dep-double-colon
 TESTS+=		dep-double-colon-indep
 TESTS+=		dep-exclam
 TESTS+=		dep-none
+TESTS+=		dep-op-missing
 TESTS+=		dep-percent
 TESTS+=		dep-var
 TESTS+=		dep-wildcards
@@ -277,6 +278,7 @@ TESTS+=		opt-warnings-as-errors
 TESTS+=		opt-where-am-i
 TESTS+=		opt-x-reduce-exported
 TESTS+=		order
+TESTS+=		parse
 TESTS+=		parse-var
 TESTS+=		phony-end
 TESTS+=		posix

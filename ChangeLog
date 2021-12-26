@@ -1,3 +1,30 @@
+2021-12-21  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20211221
+	Merge with NetBSD make, pick up
+	o more unit-tests
+	o style cleanup
+	o in CLEANUP mode, free interned strings at the very end
+	o fix memory leak for filenames in .for loops
+	o buf.c: avoid memory leak
+	o cond.c: condense CondParser_ComparisonOp
+	o hash.c: change return type of HashTable_Set to void
+	o job.c: change return type of Compat_RunCommand from int to bool
+	o main.c: remove bmake_free
+	o parse.c: condense repetetive code in ParseDirective
+	remove dead code for handling traditional include directives
+	clean up parsing of variable assignments
+	remove unreachable code for parsing the dependency operator
+	clean up loading of files
+	fix memory leak in IncludeFile
+	o var.c: fix memory leak when parsing a variable name
+	fix memory leak from ${.SUFFIXES}
+	reduce memory allocation in modifier ':?' and ':C'
+	condense RegexReplace for the modifier ':C' and avoid strlen
+	merge duplicate code for memory handling in Var_Parse
+	distinguish between short-lived and environment variables
+	rename VarFreeEnv to VarFreeShortLived
+
 2021-12-15  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* cond.c: fix mem leak in CondParser_Leaf

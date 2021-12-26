@@ -177,6 +177,8 @@ unit-tests/dep-exclam.exp
 unit-tests/dep-exclam.mk
 unit-tests/dep-none.exp
 unit-tests/dep-none.mk
+unit-tests/dep-op-missing.exp
+unit-tests/dep-op-missing.mk
 unit-tests/dep-percent.exp
 unit-tests/dep-percent.mk
 unit-tests/dep-var.exp
@@ -547,6 +549,8 @@ unit-tests/order.exp
 unit-tests/order.mk
 unit-tests/parse-var.exp
 unit-tests/parse-var.mk
+unit-tests/parse.exp
+unit-tests/parse.mk
 unit-tests/phony-end.exp
 unit-tests/phony-end.mk
 unit-tests/posix.exp
