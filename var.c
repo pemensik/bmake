@@ -1,4 +1,4 @@
-/*	$NetBSD: var.c,v 1.989 2021/12/15 13:03:33 rillig Exp $	*/
+/*	$NetBSD: var.c,v 1.1000 2022/01/09 18:49:28 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -148,7 +148,7 @@
 #include "metachar.h"
 
 /*	"@(#)var.c	8.3 (Berkeley) 3/19/94" */
-MAKE_RCSID("$NetBSD: var.c,v 1.989 2021/12/15 13:03:33 rillig Exp $");
+MAKE_RCSID("$NetBSD: var.c,v 1.1000 2022/01/09 18:49:28 rillig Exp $");
 
 /*
  * Variables are defined using one of the VAR=value assignments.  Their
@@ -161,7 +161,8 @@ MAKE_RCSID("$NetBSD: var.c,v 1.989 2021/12/15 13:03:33 rillig Exp $");
  * Scope variables are stored in a GNode.scope.  The only way to undefine
  * a scope variable is using the .undef directive.  In particular, it must
  * not be possible to undefine a variable during the evaluation of an
- * expression, or Var.name might point nowhere.
+ * expression, or Var.name might point nowhere.  (There is another,
+ * unintended way to undefine a scope variable, see varmod-loop-delete.mk.)
  *
  * Environment variables are short-lived.  They are returned by VarFind, and
  * after using them, they must be freed using VarFreeShortLived.
@@ -1006,7 +1007,7 @@ Var_SetWithFlags(GNode *scope, const char *name, const char *val,
 			    scope->name, name, val);
 			return;
 		}
-		Buf_Empty(&v->val);
+		Buf_Clear(&v->val);
 		Buf_AddStr(&v->val, val);
 
 		DEBUG3(VAR, "%s: %s = %s\n", scope->name, name, val);
@@ -1877,7 +1878,7 @@ VarQuote(const char *str, bool quoteDollar, LazyBuf *buf)
 			LazyBuf_AddStr(buf, newline);
 			continue;
 		}
-		if (ch_isspace(*p) || is_shell_metachar((unsigned char)*p))
+		if (ch_isspace(*p) || ch_is_shell_meta(*p))
 			LazyBuf_Add(buf, '\\');
 		LazyBuf_Add(buf, *p);
 		if (quoteDollar && *p == '$')
@@ -1950,15 +1951,15 @@ VarHash(const char *str)
 }
 
 static char *
-VarStrftime(const char *fmt, bool zulu, time_t tim)
+VarStrftime(const char *fmt, time_t t, bool gmt)
 {
 	char buf[BUFSIZ];
 
-	if (tim == 0)
-		time(&tim);
+	if (t == 0)
+		time(&t);
 	if (*fmt == '\0')
 		fmt = "%c";
-	strftime(buf, sizeof buf, fmt, zulu ? gmtime(&tim) : localtime(&tim));
+	strftime(buf, sizeof buf, fmt, gmt ? gmtime(&t) : localtime(&t));
 
 	buf[sizeof buf - 1] = '\0';
 	return bmake_strdup(buf);
@@ -2602,66 +2603,36 @@ TryParseTime(const char **pp, time_t *out_time)
 	return true;
 }
 
-/* :gmtime */
+/* :gmtime and :localtime */
 static ApplyModifierResult
-ApplyModifier_Gmtime(const char **pp, ModChain *ch)
+ApplyModifier_Time(const char **pp, ModChain *ch)
 {
 	Expr *expr;
-	time_t utc;
-
+	time_t t;
+	const char *args;
 	const char *mod = *pp;
-	if (!ModMatchEq(mod, "gmtime", ch))
-		return AMR_UNKNOWN;
+	bool gmt = mod[0] == 'g';
 
-	if (mod[6] == '=') {
-		const char *p = mod + 7;
-		if (!TryParseTime(&p, &utc)) {
+	if (!ModMatchEq(mod, gmt ? "gmtime" : "localtime", ch))
+		return AMR_UNKNOWN;
+	args = mod + (gmt ? 6 : 9);
+
+	if (args[0] == '=') {
+		const char *p = args + 1;
+		if (!TryParseTime(&p, &t)) {
 			Parse_Error(PARSE_FATAL,
-			    "Invalid time value at \"%s\"", mod + 7);
+			    "Invalid time value at \"%s\"", p);
 			return AMR_CLEANUP;
 		}
 		*pp = p;
 	} else {
-		utc = 0;
-		*pp = mod + 6;
+		t = 0;
+		*pp = args;
 	}
 
 	expr = ch->expr;
 	if (Expr_ShouldEval(expr))
-		Expr_SetValueOwn(expr,
-		    VarStrftime(Expr_Str(expr), true, utc));
-
-	return AMR_OK;
-}
-
-/* :localtime */
-static ApplyModifierResult
-ApplyModifier_Localtime(const char **pp, ModChain *ch)
-{
-	Expr *expr;
-	time_t utc;
-
-	const char *mod = *pp;
-	if (!ModMatchEq(mod, "localtime", ch))
-		return AMR_UNKNOWN;
-
-	if (mod[9] == '=') {
-		const char *p = mod + 10;
-		if (!TryParseTime(&p, &utc)) {
-			Parse_Error(PARSE_FATAL,
-			    "Invalid time value at \"%s\"", mod + 10);
-			return AMR_CLEANUP;
-		}
-		*pp = p;
-	} else {
-		utc = 0;
-		*pp = mod + 9;
-	}
-
-	expr = ch->expr;
-	if (Expr_ShouldEval(expr))
-		Expr_SetValueOwn(expr,
-		    VarStrftime(Expr_Str(expr), false, utc));
+		Expr_SetValueOwn(expr, VarStrftime(Expr_Str(expr), t, gmt));
 
 	return AMR_OK;
 }
@@ -2716,7 +2687,6 @@ static ApplyModifierResult
 ApplyModifier_ShellCommand(const char **pp, ModChain *ch)
 {
 	Expr *expr = ch->expr;
-	const char *errfmt;
 	VarParseResult res;
 	LazyBuf cmdBuf;
 	FStr cmd;
@@ -2727,14 +2697,18 @@ ApplyModifier_ShellCommand(const char **pp, ModChain *ch)
 		return AMR_CLEANUP;
 	cmd = LazyBuf_DoneGet(&cmdBuf);
 
-
-	errfmt = NULL;
-	if (Expr_ShouldEval(expr))
-		Expr_SetValueOwn(expr, Cmd_Exec(cmd.str, &errfmt));
-	else
+	if (Expr_ShouldEval(expr)) {
+		char *output, *error;
+		output = Cmd_Exec(cmd.str, &error);
+		Expr_SetValueOwn(expr, output);
+		if (error != NULL) {
+			/* XXX: why still return AMR_OK? */
+			Error("%s", error);
+			free(error);
+		}
+	} else
 		Expr_SetValueRefer(expr, "");
-	if (errfmt != NULL)
-		Error(errfmt, cmd.str);	/* XXX: why still return AMR_OK? */
+
 	FStr_Done(&cmd);
 	Expr_Define(expr);
 
@@ -2876,7 +2850,7 @@ ParseModifier_Match(const char **pp, const ModChain *ch,
 static ApplyModifierResult
 ApplyModifier_Match(const char **pp, ModChain *ch)
 {
-	const char mod = **pp;
+	char mod = **pp;
 	char *pattern;
 
 	ParseModifier_Match(pp, ch, &pattern);
@@ -3434,9 +3408,8 @@ ApplyModifier_Order(const char **pp, ModChain *ch)
 		else
 			goto bad;
 		*pp += 3;
-	} else {
+	} else
 		goto bad;
-	}
 
 	if (!ModChain_ShouldEval(ch))
 		return AMR_OK;
@@ -3466,16 +3439,15 @@ ApplyModifier_IfElse(const char **pp, ModChain *ch)
 	LazyBuf thenBuf;
 	LazyBuf elseBuf;
 
-	bool value = false;
 	VarEvalMode then_emode = VARE_PARSE_ONLY;
 	VarEvalMode else_emode = VARE_PARSE_ONLY;
 
-	CondEvalResult cond_rc = COND_PARSE;	/* just not COND_INVALID */
+	CondResult cond_rc = CR_TRUE;	/* just not CR_ERROR */
 	if (Expr_ShouldEval(expr)) {
-		cond_rc = Cond_EvalCondition(expr->name, &value);
-		if (cond_rc != COND_INVALID && value)
+		cond_rc = Cond_EvalCondition(expr->name);
+		if (cond_rc == CR_TRUE)
 			then_emode = expr->emode;
-		if (cond_rc != COND_INVALID && !value)
+		if (cond_rc == CR_FALSE)
 			else_emode = expr->emode;
 	}
 
@@ -3492,7 +3464,7 @@ ApplyModifier_IfElse(const char **pp, ModChain *ch)
 
 	(*pp)--;		/* Go back to the ch->endc. */
 
-	if (cond_rc == COND_INVALID) {
+	if (cond_rc == CR_ERROR) {
 		Substring thenExpr = LazyBuf_Get(&thenBuf);
 		Substring elseExpr = LazyBuf_Get(&elseBuf);
 		Error("Bad conditional expression '%s' in '%s?%.*s:%.*s'",
@@ -3507,7 +3479,7 @@ ApplyModifier_IfElse(const char **pp, ModChain *ch)
 	if (!Expr_ShouldEval(expr)) {
 		LazyBuf_Done(&thenBuf);
 		LazyBuf_Done(&elseBuf);
-	} else if (value) {
+	} else if (cond_rc == CR_TRUE) {
 		Expr_SetValue(expr, LazyBuf_DoneGet(&thenBuf));
 		LazyBuf_Done(&elseBuf);
 	} else {
@@ -3553,27 +3525,18 @@ ApplyModifier_Assign(const char **pp, ModChain *ch)
 	const char *op = mod + 1;
 
 	if (op[0] == '=')
-		goto ok;
-	if ((op[0] == '!' || op[0] == '+' || op[0] == '?') && op[1] == '=')
-		goto ok;
+		goto found_op;
+	if ((op[0] == '+' || op[0] == '?' || op[0] == '!') && op[1] == '=')
+		goto found_op;
 	return AMR_UNKNOWN;	/* "::<unrecognised>" */
 
-ok:
+found_op:
 	if (expr->name[0] == '\0') {
 		*pp = mod + 1;
 		return AMR_BAD;
 	}
 
-	switch (op[0]) {
-	case '+':
-	case '?':
-	case '!':
-		*pp = mod + 3;
-		break;
-	default:
-		*pp = mod + 2;
-		break;
-	}
+	*pp = mod + (op[0] == '+' || op[0] == '?' || op[0] == '!' ? 3 : 2);
 
 	res = ParseModifierPart(pp, ch->endc, expr->emode, ch, &buf);
 	if (res != VPR_OK)
@@ -3594,28 +3557,22 @@ ok:
 			VarFreeShortLived(gv);
 	}
 
-	switch (op[0]) {
-	case '+':
+	if (op[0] == '+')
 		Var_Append(scope, expr->name, val.str);
-		break;
-	case '!': {
-		const char *errfmt;
-		char *cmd_output = Cmd_Exec(val.str, &errfmt);
-		if (errfmt != NULL)
-			Error(errfmt, val.str);
-		else
-			Var_Set(scope, expr->name, cmd_output);
-		free(cmd_output);
-		break;
-	}
-	case '?':
-		if (expr->defined == DEF_REGULAR)
-			break;
-		/* FALLTHROUGH */
-	default:
+	else if (op[0] == '!') {
+		char *output, *error;
+		output = Cmd_Exec(val.str, &error);
+		if (error != NULL) {
+			Error("%s", error);
+			free(error);
+		} else
+			Var_Set(scope, expr->name, output);
+		free(output);
+	} else if (op[0] == '?' && expr->defined == DEF_REGULAR) {
+		/* Do nothing. */
+	} else
 		Var_Set(scope, expr->name, val.str);
-		break;
-	}
+
 	Expr_SetValueRefer(expr, "");
 
 done:
@@ -3796,10 +3753,12 @@ ApplyModifier_SunShell(const char **pp, ModChain *ch)
 	*pp = p + 2;
 
 	if (Expr_ShouldEval(expr)) {
-		const char *errfmt;
-		char *output = Cmd_Exec(Expr_Str(expr), &errfmt);
-		if (errfmt != NULL)
-			Error(errfmt, Expr_Str(expr));
+		char *output, *error;
+		output = Cmd_Exec(Expr_Str(expr), &error);
+		if (error != NULL) {
+			Error("%s", error);
+			free(error);
+		}
 		Expr_SetValueOwn(expr, output);
 	}
 
@@ -3888,15 +3847,14 @@ ApplyModifier(const char **pp, ModChain *ch)
 	case 'E':
 		return ApplyModifier_WordFunc(pp, ch, ModifyWord_Suffix);
 	case 'g':
-		return ApplyModifier_Gmtime(pp, ch);
+	case 'l':
+		return ApplyModifier_Time(pp, ch);
 	case 'H':
 		return ApplyModifier_WordFunc(pp, ch, ModifyWord_Head);
 	case 'h':
 		return ApplyModifier_Hash(pp, ch);
 	case 'L':
 		return ApplyModifier_Literal(pp, ch);
-	case 'l':
-		return ApplyModifier_Localtime(pp, ch);
 	case 'M':
 	case 'N':
 		return ApplyModifier_Match(pp, ch);

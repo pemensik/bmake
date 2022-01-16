@@ -1,4 +1,4 @@
-/*	$NetBSD: nonints.h,v 1.221 2021/12/15 12:58:01 rillig Exp $	*/
+/*	$NetBSD: nonints.h,v 1.237 2022/01/09 18:49:28 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -91,8 +91,8 @@ void Compat_Run(GNodeList *);
 void Compat_Make(GNode *, GNode *);
 
 /* cond.c */
-CondEvalResult Cond_EvalCondition(const char *, bool *) MAKE_ATTR_USE;
-CondEvalResult Cond_EvalLine(const char *) MAKE_ATTR_USE;
+CondResult Cond_EvalCondition(const char *) MAKE_ATTR_USE;
+CondResult Cond_EvalLine(const char *) MAKE_ATTR_USE;
 void Cond_restore_depth(unsigned int);
 unsigned int Cond_save_depth(void) MAKE_ATTR_USE;
 
@@ -116,9 +116,13 @@ SearchPath_New(void)
 void SearchPath_Free(SearchPath *);
 
 /* for.c */
+struct ForLoop;
 int For_Eval(const char *) MAKE_ATTR_USE;
-bool For_Accum(const char *) MAKE_ATTR_USE;
-void For_Run(int);
+bool For_Accum(const char *, int *) MAKE_ATTR_USE;
+void For_Run(int, int);
+bool For_NextIteration(struct ForLoop *, Buffer *);
+char *ForLoop_Details(struct ForLoop *);
+void ForLoop_Free(struct ForLoop *);
 
 /* job.c */
 #ifdef WAIT_T
@@ -128,44 +132,27 @@ void JobReapChild(pid_t, WAIT_T, bool);
 /* main.c */
 bool GetBooleanExpr(const char *, bool);
 void Main_ParseArgLine(const char *);
-char *Cmd_Exec(const char *, const char **) MAKE_ATTR_USE;
+char *Cmd_Exec(const char *, char **) MAKE_ATTR_USE;
 void Error(const char *, ...) MAKE_ATTR_PRINTFLIKE(1, 2);
 void Fatal(const char *, ...) MAKE_ATTR_PRINTFLIKE(1, 2) MAKE_ATTR_DEAD;
 void Punt(const char *, ...) MAKE_ATTR_PRINTFLIKE(1, 2) MAKE_ATTR_DEAD;
 void DieHorribly(void) MAKE_ATTR_DEAD;
 void Finish(int) MAKE_ATTR_DEAD;
-int eunlink(const char *) MAKE_ATTR_USE;
+bool unlink_file(const char *) MAKE_ATTR_USE;
 void execDie(const char *, const char *);
 char *getTmpdir(void) MAKE_ATTR_USE;
 bool ParseBoolean(const char *, bool) MAKE_ATTR_USE;
-char *cached_realpath(const char *, char *);
+const char *cached_realpath(const char *, char *);
 
 /* parse.c */
 void Parse_Init(void);
 void Parse_End(void);
 
-typedef enum VarAssignOp {
-	VAR_NORMAL,		/* = */
-	VAR_SUBST,		/* := */
-	VAR_SHELL,		/* != or :sh= */
-	VAR_APPEND,		/* += */
-	VAR_DEFAULT		/* ?= */
-} VarAssignOp;
-
-typedef struct VarAssign {
-	char *varname;		/* unexpanded */
-	VarAssignOp op;
-	const char *value;	/* unexpanded */
-} VarAssign;
-
-typedef char *(*ReadMoreProc)(void *, size_t *);
-
 void Parse_Error(ParseErrorLevel, const char *, ...) MAKE_ATTR_PRINTFLIKE(2, 3);
-bool Parse_IsVar(const char *, VarAssign *out_var) MAKE_ATTR_USE;
-void Parse_Var(VarAssign *, GNode *);
+bool Parse_VarAssign(const char *, bool, GNode *) MAKE_ATTR_USE;
 void Parse_AddIncludeDir(const char *);
 void Parse_File(const char *, int);
-void Parse_PushInput(const char *, int, int, ReadMoreProc, void *);
+void Parse_PushInput(const char *, int, int, Buffer, struct ForLoop *);
 void Parse_MainName(GNodeList *);
 int Parse_NumErrors(void) MAKE_ATTR_USE;
 
@@ -183,7 +170,7 @@ void Suff_ClearSuffixes(void);
 bool Suff_IsTransform(const char *) MAKE_ATTR_USE;
 GNode *Suff_AddTransform(const char *);
 void Suff_EndTransform(GNode *);
-void Suff_AddSuffix(const char *, GNode **);
+void Suff_AddSuffix(const char *);
 SearchPath *Suff_GetPath(const char *) MAKE_ATTR_USE;
 void Suff_ExtendPaths(void);
 void Suff_AddInclude(const char *);
@@ -206,8 +193,6 @@ GNode *Targ_GetNode(const char *) MAKE_ATTR_USE;
 GNode *Targ_NewInternalNode(const char *) MAKE_ATTR_USE;
 GNode *Targ_GetEndNode(void);
 void Targ_FindList(GNodeList *, StringList *);
-bool Targ_Precious(const GNode *) MAKE_ATTR_USE;
-void Targ_SetMain(GNode *);
 void Targ_PrintCmds(GNode *);
 void Targ_PrintNode(GNode *, int);
 void Targ_PrintNodes(GNodeList *, int);

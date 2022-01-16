@@ -1,6 +1,6 @@
-# $Id: Makefile,v 1.165 2021/12/21 18:47:24 sjg Exp $
+# $Id: Makefile,v 1.168 2022/01/13 04:56:51 sjg Exp $
 #
-# $NetBSD: Makefile,v 1.290 2021/12/14 00:02:57 rillig Exp $
+# $NetBSD: Makefile,v 1.295 2022/01/11 19:47:34 rillig Exp $
 #
 # Unit tests for make(1)
 #
@@ -274,6 +274,7 @@ TESTS+=		opt-touch-jobs
 TESTS+=		opt-tracefile
 TESTS+=		opt-var-expanded
 TESTS+=		opt-var-literal
+TESTS+=		opt-version
 TESTS+=		opt-warnings-as-errors
 TESTS+=		opt-where-am-i
 TESTS+=		opt-x-reduce-exported
@@ -342,6 +343,7 @@ TESTS+=		varfind
 TESTS+=		varmisc
 TESTS+=		varmod
 TESTS+=		varmod-assign
+TESTS+=		varmod-assign-shell
 TESTS+=		varmod-defined
 TESTS+=		varmod-edge
 TESTS+=		varmod-exclam-shell
@@ -738,6 +740,9 @@ _SED_CMDS+=	-e 's,${TEST_MAKE:T:S,.,\\.,g}[][0-9]* warning,make warning,'
 _SED_CMDS+=	-e 's,^usage: ${TEST_MAKE:T:S,.,\\.,g} ,usage: make ,'
 # replace anything after 'stopped in' with unit-tests
 _SED_CMDS+=	-e '/stopped/s, /.*, unit-tests,'
+# Allow the test files to be placed anywhere.
+_SED_CMDS+=	-e 's,\(\.PARSEDIR}\) = `'"/[^']*'"',\1 = <some-dir>,'
+_SED_CMDS+=	-e 's,\(\.INCLUDEDFROMDIR}\) = `'"/[^']*'"',\1 = <some-dir>,'
 _SED_CMDS+=	-e 's,${TMPDIR},TMPDIR,g'
 # canonicalize ${.OBJDIR} and ${.CURDIR}
 .if ${.OBJDIR} != ${.CURDIR}

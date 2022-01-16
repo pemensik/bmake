@@ -1,4 +1,4 @@
-/*	$NetBSD: make.h,v 1.278 2021/12/15 13:03:33 rillig Exp $	*/
+/*	$NetBSD: make.h,v 1.288 2022/01/09 18:59:27 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -376,8 +376,6 @@ typedef enum GNodeType {
 	OP_DEPS_FOUND	= 1 << 24,
 	/* Node found while expanding .ALLSRC */
 	OP_MARK		= 1 << 23,
-
-	OP_NOTARGET	= OP_NOTMAIN | OP_USE | OP_EXEC | OP_TRANSFORM
 } GNodeType;
 
 typedef struct GNodeFlags {
@@ -516,7 +514,7 @@ typedef struct GNode {
 
 	/* Filename where the GNode got defined, unlimited lifetime */
 	const char *fname;
-	/* Line number where the GNode got defined */
+	/* Line number where the GNode got defined, 1-based */
 	int lineno;
 } GNode;
 
@@ -536,11 +534,11 @@ typedef enum ParseErrorLevel {
 /*
  * Values returned by Cond_EvalLine and Cond_EvalCondition.
  */
-typedef enum CondEvalResult {
-	COND_PARSE,		/* Parse the next lines */
-	COND_SKIP,		/* Skip the next lines */
-	COND_INVALID		/* Not a conditional statement */
-} CondEvalResult;
+typedef enum CondResult {
+	CR_TRUE,		/* Parse the next lines */
+	CR_FALSE,		/* Skip the next lines */
+	CR_ERROR		/* Unknown directive or parse error */
+} CondResult;
 
 /* Names of the variables that are "local" to a specific target. */
 #define TARGET	"@"		/* Target of dependency */
@@ -607,6 +605,7 @@ extern int makelevel;
 extern char *makeDependfile;
 /* If we replaced environ, this will be non-NULL. */
 extern char **savedEnv;
+extern GNode *mainNode;
 
 extern pid_t myPid;
 
@@ -734,19 +733,19 @@ typedef struct CmdOpts {
 	 * -q: if true, do not really make anything, just see if the targets
 	 * are out-of-date
 	 */
-	bool queryFlag;
+	bool query;
 
 	/* -r: raw mode, do not load the builtin rules. */
 	bool noBuiltins;
 
 	/* -s: don't echo the shell commands before executing them */
-	bool beSilent;
+	bool silent;
 
 	/*
 	 * -t: touch the targets if they are out-of-date, but don't actually
 	 * make them
 	 */
-	bool touchFlag;
+	bool touch;
 
 	/* -[Vv]: print expanded or unexpanded selected variables */
 	PrintVarsMode printVars;
@@ -831,6 +830,21 @@ GNode_IsError(const GNode *gn)
 	return gn->made == ERROR || gn->made == ABORTED;
 }
 
+MAKE_INLINE bool MAKE_ATTR_USE
+GNode_IsMainCandidate(const GNode *gn)
+{
+	return (gn->type & (OP_NOTMAIN | OP_USE | OP_USEBEFORE |
+			    OP_EXEC | OP_TRANSFORM)) == 0;
+}
+
+/* Return whether the target file should be preserved on interrupt. */
+MAKE_INLINE bool MAKE_ATTR_USE
+GNode_IsPrecious(const GNode *gn)
+{
+	/* XXX: Why are '::' targets precious? */
+	return allPrecious || gn->type & (OP_PRECIOUS | OP_DOUBLEDEP);
+}
+
 MAKE_INLINE const char * MAKE_ATTR_USE
 GNode_VarTarget(GNode *gn) { return GNode_ValueDirect(gn, TARGET); }
 MAKE_INLINE const char * MAKE_ATTR_USE
@@ -898,6 +912,17 @@ cpp_skip_hspace(const char **pp)
 {
 	while (**pp == ' ' || **pp == '\t')
 		(*pp)++;
+}
+
+MAKE_INLINE bool
+cpp_skip_string(const char **pp, const char *s)
+{
+	const char *p = *pp;
+	while (*p == *s && *s != '\0')
+		p++, s++;
+	if (*s == '\0')
+		*pp = p;
+	return *s == '\0';
 }
 
 MAKE_INLINE void

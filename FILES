@@ -537,6 +537,8 @@ unit-tests/opt-var-expanded.exp
 unit-tests/opt-var-expanded.mk
 unit-tests/opt-var-literal.exp
 unit-tests/opt-var-literal.mk
+unit-tests/opt-version.exp
+unit-tests/opt-version.mk
 unit-tests/opt-warnings-as-errors.exp
 unit-tests/opt-warnings-as-errors.mk
 unit-tests/opt-where-am-i.exp
@@ -667,6 +669,8 @@ unit-tests/varfind.exp
 unit-tests/varfind.mk
 unit-tests/varmisc.exp
 unit-tests/varmisc.mk
+unit-tests/varmod-assign-shell.exp
+unit-tests/varmod-assign-shell.mk
 unit-tests/varmod-assign.exp
 unit-tests/varmod-assign.mk
 unit-tests/varmod-defined.exp

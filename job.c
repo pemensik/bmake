@@ -1,4 +1,4 @@
-/*	$NetBSD: job.c,v 1.443 2021/12/15 12:58:01 rillig Exp $	*/
+/*	$NetBSD: job.c,v 1.448 2022/01/08 09:53:44 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990 The Regents of the University of California.
@@ -155,7 +155,7 @@
 #include "trace.h"
 
 /*	"@(#)job.c	8.2 (Berkeley) 3/19/94"	*/
-MAKE_RCSID("$NetBSD: job.c,v 1.443 2021/12/15 12:58:01 rillig Exp $");
+MAKE_RCSID("$NetBSD: job.c,v 1.448 2022/01/08 09:53:44 rillig Exp $");
 
 /*
  * A shell defines how the commands are run.  All commands for a target are
@@ -519,13 +519,13 @@ JobDeleteTarget(GNode *gn)
 		return;
 	if (gn->type & OP_PHONY)
 		return;
-	if (Targ_Precious(gn))
+	if (GNode_IsPrecious(gn))
 		return;
 	if (opts.noExecute)
 		return;
 
 	file = GNode_Path(gn);
-	if (eunlink(file) != -1)
+	if (unlink_file(file))
 		Error("*** %s removed", file);
 }
 
@@ -1459,9 +1459,8 @@ JobExec(Job *job, char **argv)
 		sigset_t tmask;
 
 #ifdef USE_META
-		if (useMeta) {
+		if (useMeta)
 			meta_job_child(job);
-		}
 #endif
 		/*
 		 * Reset all signal handlers; this is necessary because we
@@ -1543,9 +1542,8 @@ JobExec(Job *job, char **argv)
 	Trace_Log(JOBSTART, job);
 
 #ifdef USE_META
-	if (useMeta) {
+	if (useMeta)
 		meta_job_parent(job, cpid);
-	}
 #endif
 
 	/*
@@ -1683,7 +1681,7 @@ JobStart(GNode *gn, bool special)
 
 	job->special = special || gn->type & OP_SPECIAL;
 	job->ignerr = opts.ignoreErrors || gn->type & OP_IGNORE;
-	job->echo = !(opts.beSilent || gn->type & OP_SILENT);
+	job->echo = !(opts.silent || gn->type & OP_SILENT);
 
 	/*
 	 * Check the commands now so any attributes from .DEFAULT have a
@@ -1706,7 +1704,7 @@ JobStart(GNode *gn, bool special)
 			DieHorribly();
 		}
 	} else if (((gn->type & OP_MAKE) && !opts.noRecursiveExecute) ||
-	    (!opts.noExecute && !opts.touchFlag)) {
+	    (!opts.noExecute && !opts.touch)) {
 		/*
 		 * The above condition looks very similar to
 		 * GNode_ShouldExecute but is subtly different.  It prevents
@@ -1939,7 +1937,7 @@ again:
 			 * we add one of our own free will.
 			 */
 			if (*cp != '\0') {
-				if (!opts.beSilent)
+				if (!opts.silent)
 					SwitchOutputTo(job->node);
 #ifdef USE_META
 				if (useMeta) {
@@ -2151,9 +2149,8 @@ Job_CatchOutput(void)
 		 * than job->inPollfd.
 		 */
 		if (useMeta && job->inPollfd != &fds[i]) {
-			if (meta_job_event(job) <= 0) {
+			if (meta_job_event(job) <= 0)
 				fds[i].events = 0;	/* never mind */
-			}
 		}
 #endif
 		if (--nready == 0)
@@ -2207,14 +2204,8 @@ Shell_Init(void)
 			free(shellErrFlag);
 			shellErrFlag = NULL;
 		}
-		if (shellErrFlag == NULL) {
-			size_t n = strlen(shell->errFlag) + 2;
-
-			shellErrFlag = bmake_malloc(n);
-			if (shellErrFlag != NULL)
-				snprintf(shellErrFlag, n, "-%s",
-				    shell->errFlag);
-		}
+		if (shellErrFlag == NULL)
+			shellErrFlag = str_concat2("-", shell->errFlag);
 	} else if (shellErrFlag != NULL) {
 		free(shellErrFlag);
 		shellErrFlag = NULL;
@@ -2628,7 +2619,7 @@ JobInterrupt(bool runINTERRUPT, int signo)
 
 	JobSigUnlock(&mask);
 
-	if (runINTERRUPT && !opts.touchFlag) {
+	if (runINTERRUPT && !opts.touch) {
 		interrupt = Targ_FindNode(".INTERRUPT");
 		if (interrupt != NULL) {
 			opts.ignoreErrors = false;

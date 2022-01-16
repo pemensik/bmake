@@ -1,3 +1,70 @@
+2022-01-12  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20220112
+	Merge with NetBSD make, pick up
+	o meta.c: add .MAKE.META.CMP_FILTER for filtering commands before
+	comparion, rarely needed but useful when it is.
+
+2022-01-10  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20220110
+	Merge with NetBSD make, pick up
+	o inline Buf_Clear
+	o remove redundant braces
+	o rename and inline Targ_Precious
+	o cond.c: remove redundant initializer in CondParser_ComparisonOrLeaf
+	o for.c: clean up handling of .for loops
+	fix reported line numbers of continuation lines
+	add details about .for loop variables to stack traces
+	o job.c: reduce code for initializing error handling in shell
+	o main.c: in Cmd_Exec, return error message instead of format string
+	have as few statements as possible between va_start and va_end
+	add debug logging for capturing the output of external commands
+	o make.c: use consistent variable names for varargs
+	o make_malloc.c: remove duplicate code from bmake_strdup
+	o parse.c: add missing printflike annotations
+	remove redundant lines from stack traces
+	fix stack traces in -dp mode
+	reduce confusing code in ParseForLoop
+	fix line number in debug log after returning from a file
+	rename IFile and its fields to match their actual content
+	clean up ParseDependencySources
+	o var.c: shorten ApplyModifier_Assign
+	rename is_shell_metachar, fix character conversion warning
+	merge calls to ApplyModifier_Time
+	merge duplicate code for modifiers 'gmtime' and 'localtime'
+
+2022-01-04  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* parse.c: loadfile restore extra byte in buffer.
+
+2022-01-01  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20220101
+	Merge with NetBSD make, pick up
+	o more unit-tests
+	o remove unnecessary words from command line options in CmdOpts
+	o rename eunlink to unlink_file
+	o cond.c: make ParseWord in condition parser simpler
+	internally return false for irrelevant leaves in conditions
+	replace table for function lookup in conditions with simple code
+	merge duplicate types CondEvalResult and CondResult
+	o for.c: clean up handling of .for loops and .include directives
+	o main.c: constify cached_realpath
+	clean up Cmd_Exec
+	o parse.c: sync API documentation
+	fix error message when reading more than 1 GB from stdin
+	clean up parsing of makefiles
+	fix line number in error message about open conditionals
+	unexport types VarAssignOp and VarAssign
+	clean up function names
+	remove redundant parameters in dependency parsing functions
+	reduce scope of the list of wildcard target names
+	extract OP_NOTARGET into separate function
+	clean up variable names for parsing dependency lines
+	make debug logging a bit more human-friendly
+	o var.c: condense code in ApplyModifier_Assign
+
 2021-12-21  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20211221

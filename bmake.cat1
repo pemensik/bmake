@@ -616,6 +616,14 @@ BMAKE(1)                FreeBSD General Commands Manual               BMAKE(1)
                      generated outside of [4m.OBJDIR[24m but within said bailiwick is
                      missing, the current target is considered out-of-date.
 
+     [4m.MAKE.META.CMP_FILTER[0m
+                     In "meta" mode, it can (very rarely!) be useful to filter
+                     command lines before comparison.  This variable can be
+                     set to a set of modifiers that will be applied to each
+                     line of the old and new command that differ, if the fil-
+                     tered commands still differ, the target is considered
+                     out-of-date.
+
      [4m.MAKE.META.CREATED[0m
                      In "meta" mode, this variable contains a list of all the
                      meta files updated.  If not empty, it can be used to
@@ -1591,4 +1599,4 @@ BMAKE(1)                FreeBSD General Commands Manual               BMAKE(1)
 
      There is no way of escaping a space character in a filename.
 
-FreeBSD 13.0                   December 12, 2021                  FreeBSD 13.0
+FreeBSD 13.0                   January 12, 2022                   FreeBSD 13.0
