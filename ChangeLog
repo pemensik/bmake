@@ -1,3 +1,15 @@
+2022-01-16  Simon J Gerraty  <sjg@beast.crufty.net>
+
+	* VERSION (_MAKE_VERSION): 20220116
+	Merge with NetBSD make, pick up
+	o fix for unit-tests/varname-makeflags on non-BSD systems
+	o use Var_Exists rather than Var_Value where appropriate
+	o remove unnecessary functions for expanding variable names
+	o cond.c: inline EvalBare
+	o main.c: lint cleanup
+	o parse.c: condense code in Parse_IsVar
+	use islower for parsing directives (none have upper case)
+
 2022-01-12  Simon J Gerraty  <sjg@beast.crufty.net>
 
 	* VERSION (_MAKE_VERSION): 20220112

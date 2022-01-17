@@ -1,4 +1,4 @@
-/*	$NetBSD: main.c,v 1.569 2022/01/10 20:32:28 rillig Exp $	*/
+/*	$NetBSD: main.c,v 1.573 2022/01/15 22:18:04 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -111,7 +111,7 @@
 #include "trace.h"
 
 /*	"@(#)main.c	8.3 (Berkeley) 3/19/94"	*/
-MAKE_RCSID("$NetBSD: main.c,v 1.569 2022/01/10 20:32:28 rillig Exp $");
+MAKE_RCSID("$NetBSD: main.c,v 1.573 2022/01/15 22:18:04 rillig Exp $");
 #if defined(MAKE_NATIVE) && !defined(lint)
 __COPYRIGHT("@(#) Copyright (c) 1988, 1989, 1990, 1993 "
 	    "The Regents of the University of California.  "
@@ -456,7 +456,7 @@ MainParseArg(char c, const char *argvalue)
 	case 'D':
 		if (argvalue[0] == '\0')
 			return false;
-		Global_SetExpand(argvalue, "1");
+		Var_SetExpand(SCOPE_GLOBAL, argvalue, "1");
 		Global_Append(MAKEFLAGS, "-D");
 		Global_Append(MAKEFLAGS, argvalue);
 		break;
@@ -761,14 +761,7 @@ SetVarObjdir(bool writable, const char *var, const char *suffix)
 		return false;
 	}
 
-	/* expand variable substitutions */
-	if (strchr(path.str, '$') != 0) {
-		char *expanded;
-		(void)Var_Subst(path.str, SCOPE_GLOBAL, VARE_WANTRES, &expanded);
-		/* TODO: handle errors */
-		FStr_Done(&path);
-		path = FStr_InitOwn(expanded);
-	}
+	Var_Expand(&path, SCOPE_GLOBAL, VARE_WANTRES);
 
 	(void)Main_SetObjdir(writable, "%s%s", path.str, suffix);
 
@@ -1052,17 +1045,14 @@ static void
 HandlePWD(const struct stat *curdir_st)
 {
 	char *pwd;
-	FStr prefix, makeobjdir;
+	FStr makeobjdir;
 	struct stat pwd_st;
 
 	if (ignorePWD || (pwd = getenv("PWD")) == NULL)
 		return;
 
-	prefix = Var_Value(SCOPE_CMDLINE, "MAKEOBJDIRPREFIX");
-	if (prefix.str != NULL) {
-		FStr_Done(&prefix);
+	if (Var_Exists(SCOPE_CMDLINE, "MAKEOBJDIRPREFIX"))
 		return;
-	}
 
 	makeobjdir = Var_Value(SCOPE_CMDLINE, "MAKEOBJDIR");
 	if (makeobjdir.str != NULL && strchr(makeobjdir.str, '$') != NULL)
@@ -1752,7 +1742,7 @@ Cmd_Exec(const char *cmd, char **error)
 	if (pipe(pipefds) == -1) {
 		*error = str_concat3(
 		    "Couldn't create pipe for \"", cmd, "\"");
-		return bmake_strdup("");;
+		return bmake_strdup("");
 	}
 
 	Var_ReexportVars();

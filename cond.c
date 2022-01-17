@@ -1,4 +1,4 @@
-/*	$NetBSD: cond.c,v 1.324 2022/01/07 09:19:43 rillig Exp $	*/
+/*	$NetBSD: cond.c,v 1.326 2022/01/15 19:34:07 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990 The Regents of the University of California.
@@ -95,7 +95,7 @@
 #include "dir.h"
 
 /*	"@(#)cond.c	8.2 (Berkeley) 1/2/94"	*/
-MAKE_RCSID("$NetBSD: cond.c,v 1.324 2022/01/07 09:19:43 rillig Exp $");
+MAKE_RCSID("$NetBSD: cond.c,v 1.326 2022/01/15 19:34:07 rillig Exp $");
 
 /*
  * Conditional expressions conform to this grammar:
@@ -290,10 +290,7 @@ ParseFuncArg(CondParser *par, const char **pp, bool doEval, const char *func)
 static bool
 FuncDefined(const char *var)
 {
-	FStr value = Var_Value(SCOPE_CMDLINE, var);
-	bool result = value.str != NULL;
-	FStr_Done(&value);
-	return result;
+	return Var_Exists(SCOPE_CMDLINE, var);
 }
 
 /* See if the given target is requested to be made. */
@@ -524,13 +521,6 @@ cleanup:
 	*out_str = str;
 }
 
-static bool
-EvalBare(const CondParser *par, const char *arg)
-{
-	bool res = par->evalBare(arg);
-	return par->negateEvalBare ? !res : res;
-}
-
 /*
  * Evaluate a "comparison without operator", such as in ".if ${VAR}" or
  * ".if 0".
@@ -560,7 +550,7 @@ EvalNotEmpty(CondParser *par, const char *value, bool quoted)
 	if (par->plain)
 		return value[0] != '\0';
 
-	return EvalBare(par, value);
+	return par->evalBare(value) != par->negateEvalBare;
 }
 
 /* Evaluate a numerical comparison, such as in ".if ${VAR} >= 9". */
@@ -805,7 +795,7 @@ CondParser_ComparisonOrLeaf(CondParser *par, bool doEval)
 	 * after .if must have been taken literally, so the argument cannot
 	 * be empty - even if it contained a variable expansion.
 	 */
-	t = ToToken(doEval && EvalBare(par, arg));
+	t = ToToken(doEval && par->evalBare(arg) != par->negateEvalBare);
 	free(arg);
 	return t;
 }

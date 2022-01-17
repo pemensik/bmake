@@ -1,4 +1,4 @@
-/*      $NetBSD: meta.c,v 1.187 2022/01/13 04:51:50 sjg Exp $ */
+/*      $NetBSD: meta.c,v 1.192 2022/01/15 19:34:07 rillig Exp $ */
 
 /*
  * Implement 'meta' mode.
@@ -334,15 +334,14 @@ is_submake(const char *cmd, GNode *gn)
     static const char *p_make = NULL;
     static size_t p_len;
     char *mp = NULL;
-    const char *cp, *cp2;
+    const char *cp2;
     bool rc = false;
 
     if (p_make == NULL) {
 	p_make = Var_Value(gn, ".MAKE").str;
 	p_len = strlen(p_make);
     }
-    cp = strchr(cmd, '$');
-    if (cp != NULL) {
+    if (strchr(cmd, '$') != NULL) {
 	(void)Var_Subst(cmd, gn, VARE_WANTRES, &mp);
 	/* TODO: handle errors */
 	cmd = mp;
@@ -389,13 +388,7 @@ printCMD(const char *ucmd, FILE *fp, GNode *gn)
 {
     FStr xcmd = FStr_InitRefer(ucmd);
 
-    if (strchr(ucmd, '$') != NULL) {
-	char *expanded;
-	(void)Var_Subst(ucmd, gn, VARE_WANTRES, &expanded);
-	/* TODO: handle errors */
-	xcmd = FStr_InitOwn(expanded);
-    }
-
+    Var_Expand(&xcmd, gn, VARE_WANTRES);
     fprintf(fp, "CMD %s\n", xcmd.str);
     FStr_Done(&xcmd);
 }
@@ -605,7 +598,6 @@ meta_mode_init(const char *make_mode)
 {
     static bool once = false;
     const char *cp;
-    FStr value;
 
     useMeta = true;
     useFilemon = true;
@@ -662,21 +654,9 @@ meta_mode_init(const char *make_mode)
     /*
      * We ignore any paths that match ${.MAKE.META.IGNORE_PATTERNS}
      */
-    value = Var_Value(SCOPE_GLOBAL, MAKE_META_IGNORE_PATTERNS);
-    if (value.str != NULL) {
-	metaIgnorePatterns = true;
-	FStr_Done(&value);
-    }
-    value = Var_Value(SCOPE_GLOBAL, MAKE_META_IGNORE_FILTER);
-    if (value.str != NULL) {
-	metaIgnoreFilter = true;
-	FStr_Done(&value);
-    }
-    value = Var_Value(SCOPE_GLOBAL, MAKE_META_CMP_FILTER);
-    if (value.str != NULL) {
-	metaCmpFilter = true;
-	FStr_Done(&value);
-    }
+    metaIgnorePatterns = Var_Exists(SCOPE_GLOBAL, MAKE_META_IGNORE_PATTERNS);
+    metaIgnoreFilter = Var_Exists(SCOPE_GLOBAL, MAKE_META_IGNORE_FILTER);
+    metaCmpFilter = Var_Exists(SCOPE_GLOBAL, MAKE_META_CMP_FILTER);
 }
 
 /*
@@ -1103,7 +1083,7 @@ meta_filter_cmd(Buffer *buf, GNode *gn, char *s)
     Var_Subst(buf->data, gn, VARE_WANTRES, &s);
     return s;
 }
-    
+
 static int
 meta_cmd_cmp(GNode *gn, char *a, char *b)
 {
@@ -1282,8 +1262,8 @@ meta_oodate(GNode *gn, bool oodate)
 
 			if (lastpid > 0) {
 			    /* We need to remember these. */
-			    Global_SetExpand(lcwd_vname, lcwd);
-			    Global_SetExpand(ldir_vname, latestdir);
+			    Global_Set(lcwd_vname, lcwd);
+			    Global_Set(ldir_vname, latestdir);
 			}
 			snprintf(lcwd_vname, sizeof lcwd_vname, LCWD_VNAME_FMT, pid);
 			snprintf(ldir_vname, sizeof ldir_vname, LDIR_VNAME_FMT, pid);
@@ -1316,8 +1296,8 @@ meta_oodate(GNode *gn, bool oodate)
 		/* Process according to record type. */
 		switch (buf[0]) {
 		case 'X':		/* eXit */
-		    Var_DeleteExpand(SCOPE_GLOBAL, lcwd_vname);
-		    Var_DeleteExpand(SCOPE_GLOBAL, ldir_vname);
+		    Var_Delete(SCOPE_GLOBAL, lcwd_vname);
+		    Var_Delete(SCOPE_GLOBAL, ldir_vname);
 		    lastpid = 0;	/* no need to save ldir_vname */
 		    break;
 
@@ -1329,9 +1309,9 @@ meta_oodate(GNode *gn, bool oodate)
 			child = atoi(p);
 			if (child > 0) {
 			    snprintf(cldir, sizeof cldir, LCWD_VNAME_FMT, child);
-			    Global_SetExpand(cldir, lcwd);
+			    Global_Set(cldir, lcwd);
 			    snprintf(cldir, sizeof cldir, LDIR_VNAME_FMT, child);
-			    Global_SetExpand(cldir, latestdir);
+			    Global_Set(cldir, latestdir);
 #ifdef DEBUG_META_MODE
 			    if (DEBUG(META))
 				debug_printf(
@@ -1347,8 +1327,8 @@ meta_oodate(GNode *gn, bool oodate)
 		    /* Update lcwd and latest directory. */
 		    strlcpy(latestdir, p, sizeof latestdir);
 		    strlcpy(lcwd, p, sizeof lcwd);
-		    Global_SetExpand(lcwd_vname, lcwd);
-		    Global_SetExpand(ldir_vname, lcwd);
+		    Global_Set(lcwd_vname, lcwd);
+		    Global_Set(ldir_vname, lcwd);
 #ifdef DEBUG_META_MODE
 		    DEBUG4(META, "%s: %d: cwd=%s ldir=%s\n",
 			   fname, lineno, cwd, lcwd);

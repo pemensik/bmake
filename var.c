@@ -1,4 +1,4 @@
-/*	$NetBSD: var.c,v 1.1000 2022/01/09 18:49:28 rillig Exp $	*/
+/*	$NetBSD: var.c,v 1.1002 2022/01/15 19:05:23 rillig Exp $	*/
 
 /*
  * Copyright (c) 1988, 1989, 1990, 1993
@@ -103,7 +103,6 @@
  *	Var_Parse	Parse a variable expression such as ${VAR:Mpattern}.
  *
  *	Var_Delete
- *	Var_DeleteExpand
  *			Delete a variable.
  *
  *	Var_ReexportVars
@@ -148,7 +147,7 @@
 #include "metachar.h"
 
 /*	"@(#)var.c	8.3 (Berkeley) 3/19/94" */
-MAKE_RCSID("$NetBSD: var.c,v 1.1000 2022/01/09 18:49:28 rillig Exp $");
+MAKE_RCSID("$NetBSD: var.c,v 1.1002 2022/01/15 19:05:23 rillig Exp $");
 
 /*
  * Variables are defined using one of the VAR=value assignments.  Their
@@ -527,27 +526,6 @@ Var_Delete(GNode *scope, const char *varname)
 	HashTable_DeleteEntry(&scope->vars, he);
 	Buf_Done(&v->val);
 	free(v);
-}
-
-/*
- * Remove a variable from a scope, freeing all related memory as well.
- * The variable name is expanded once.
- */
-void
-Var_DeleteExpand(GNode *scope, const char *name)
-{
-	FStr varname = FStr_InitRefer(name);
-
-	if (strchr(varname.str, '$') != NULL) {
-		char *expanded;
-		(void)Var_Subst(varname.str, SCOPE_GLOBAL, VARE_WANTRES,
-		    &expanded);
-		/* TODO: handle errors */
-		varname = FStr_InitOwn(expanded);
-	}
-
-	Var_Delete(scope, varname.str);
-	FStr_Done(&varname);
 }
 
 /*
@@ -1057,12 +1035,7 @@ Var_SetExpandWithFlags(GNode *scope, const char *name, const char *val,
 
 	assert(val != NULL);
 
-	if (strchr(varname.str, '$') != NULL) {
-		char *expanded;
-		(void)Var_Subst(varname.str, scope, VARE_WANTRES, &expanded);
-		/* TODO: handle errors */
-		varname = FStr_InitOwn(expanded);
-	}
+	Var_Expand(&varname, scope, VARE_WANTRES);
 
 	if (varname.str[0] == '\0') {
 		DEBUG2(VAR,
@@ -1102,12 +1075,6 @@ void
 Global_Set(const char *name, const char *value)
 {
 	Var_Set(SCOPE_GLOBAL, name, value);
-}
-
-void
-Global_SetExpand(const char *name, const char *value)
-{
-	Var_SetExpand(SCOPE_GLOBAL, name, value);
 }
 
 void
@@ -1186,22 +1153,14 @@ Var_AppendExpand(GNode *scope, const char *name, const char *val)
 
 	assert(val != NULL);
 
-	if (strchr(name, '$') != NULL) {
-		char *expanded;
-		(void)Var_Subst(name, scope, VARE_WANTRES, &expanded);
-		/* TODO: handle errors */
-		xname = FStr_InitOwn(expanded);
-		if (expanded[0] == '\0') {
-			DEBUG2(VAR,
-			    "Var_AppendExpand: variable name \"%s\" expands "
-			    "to empty string, with value \"%s\" - ignored\n",
-			    name, val);
-			FStr_Done(&xname);
-			return;
-		}
-	}
-
-	Var_Append(scope, xname.str, val);
+	Var_Expand(&xname, scope, VARE_WANTRES);
+	if (xname.str != name && xname.str[0] == '\0')
+		DEBUG2(VAR,
+		    "Var_AppendExpand: variable name \"%s\" expands "
+		    "to empty string, with value \"%s\" - ignored\n",
+		    name, val);
+	else
+		Var_Append(scope, xname.str, val);
 
 	FStr_Done(&xname);
 }
@@ -1237,13 +1196,7 @@ Var_ExistsExpand(GNode *scope, const char *name)
 	FStr varname = FStr_InitRefer(name);
 	bool exists;
 
-	if (strchr(varname.str, '$') != NULL) {
-		char *expanded;
-		(void)Var_Subst(varname.str, scope, VARE_WANTRES, &expanded);
-		/* TODO: handle errors */
-		varname = FStr_InitOwn(expanded);
-	}
-
+	Var_Expand(&varname, scope, VARE_WANTRES);
 	exists = Var_Exists(scope, varname.str);
 	FStr_Done(&varname);
 	return exists;
@@ -1487,7 +1440,6 @@ ModifyWord_SysVSubst(Substring word, SepBuf *buf, void *data)
 {
 	const struct ModifyWord_SysVSubstArgs *args = data;
 	FStr rhs;
-	char *rhsExp;
 	const char *percent;
 
 	if (Substring_IsEmpty(word))
@@ -1499,11 +1451,7 @@ ModifyWord_SysVSubst(Substring word, SepBuf *buf, void *data)
 		goto no_match;
 
 	rhs = FStr_InitRefer(args->rhs);
-	if (strchr(rhs.str, '$') != NULL) {
-		(void)Var_Subst(args->rhs, args->scope, VARE_WANTRES, &rhsExp);
-		/* TODO: handle errors */
-		rhs = FStr_InitOwn(rhsExp);
-	}
+	Var_Expand(&rhs, args->scope, VARE_WANTRES);
 
 	percent = args->lhsPercent ? strchr(rhs.str, '%') : NULL;
 
@@ -4788,6 +4736,19 @@ Var_Subst(const char *str, GNode *scope, VarEvalMode emode, char **out_res)
 
 	*out_res = Buf_DoneDataCompact(&res);
 	return VPR_OK;
+}
+
+void
+Var_Expand(FStr *str, GNode *scope, VarEvalMode emode)
+{
+	char *expanded;
+
+	if (strchr(str->str, '$') == NULL)
+		return;
+	(void)Var_Subst(str->str, scope, emode, &expanded);
+	/* TODO: handle errors */
+	FStr_Done(str);
+	*str = FStr_InitOwn(expanded);
 }
 
 /* Initialize the variables module. */
